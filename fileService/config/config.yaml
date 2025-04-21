@@ -1,0 +1,13 @@
+db:
+  host: localhost
+  user: postgres
+  password: postgres
+  name: team_messenger
+  port: 5432
+minio:
+  host: localhost:9000
+  bucket: teamfiles
+  access_key: ZYPRYMQmxFdH4KmWQwtW
+  secret_key: MCLskXbhNiHLfqAweJpwQB4QYnhDsBvIvTBl9ZUm
+app:
+  port: 8080

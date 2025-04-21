@@ -1,0 +1,322 @@
+basePath: /api/v1
+definitions:
+  dto.FileInformation:
+    properties:
+      id:
+        type: integer
+      name:
+        type: string
+    type: object
+  models.File:
+    properties:
+      created_at:
+        type: string
+      file_type:
+        $ref: '#/definitions/models.FileType'
+      file_type_id:
+        type: integer
+      id:
+        type: integer
+      name:
+        type: string
+      url:
+        type: string
+    type: object
+  models.FileType:
+    properties:
+      id:
+        type: integer
+      name:
+        type: string
+    type: object
+externalDocs:
+  description: OpenAPI
+  url: https://swagger.io/resources/open-api/
+host: localhost:8080
+info:
+  contact:
+    email: support@swagger.io
+    name: API Support
+    url: http://www.swagger.io/support
+  description: API сервиса для работы с файлами
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  termsOfService: http://swagger.io/terms/
+  title: File Service API
+  version: "1.0"
+paths:
+  /file-types:
+    post:
+      description: Создает новый тип файла в системе
+      parameters:
+      - description: Название типа файла
+        in: query
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Тип файла успешно создан
+          schema:
+            $ref: '#/definitions/models.FileType'
+        "400":
+          description: Отсутствует название типа файла
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Создание типа файла
+      tags:
+      - file-types
+  /file-types/{id}:
+    delete:
+      description: Удаляет тип файла по его ID
+      parameters:
+      - description: ID типа файла
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Тип файла успешно удален
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Некорректный ID
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Удаление типа файла
+      tags:
+      - file-types
+    get:
+      description: Получает информацию о типе файла по его ID
+      parameters:
+      - description: ID типа файла
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Информация о типе файла
+          schema:
+            $ref: '#/definitions/models.FileType'
+        "400":
+          description: Некорректный ID
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Тип файла не найден
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Получение типа файла по ID
+      tags:
+      - file-types
+  /file-types/name/{name}:
+    get:
+      description: Получает информацию о типе файла по его названию
+      parameters:
+      - description: Название типа файла
+        in: path
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Информация о типе файла
+          schema:
+            $ref: '#/definitions/models.FileType'
+        "400":
+          description: Отсутствует название типа файла
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Тип файла не найден
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Получение типа файла по названию
+      tags:
+      - file-types
+  /files:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Загружает файл в MinIO и сохраняет метаданные в БД
+      parameters:
+      - description: Файл для загрузки
+        in: formData
+        name: file
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Файл успешно загружен
+          schema:
+            $ref: '#/definitions/models.File'
+        "400":
+          description: Файл отсутствует в форме
+          schema:
+            additionalProperties: true
+            type: object
+        "409":
+          description: Файл уже существует
+          schema:
+            additionalProperties: true
+            type: object
+        "415":
+          description: Неподдерживаемый тип файла
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Загрузка файла
+      tags:
+      - files
+  /files/{file_id}:
+    get:
+      description: Получает информацию о файле по его ID
+      parameters:
+      - description: ID файла
+        in: path
+        name: file_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Информация о файле
+          schema:
+            $ref: '#/definitions/models.File'
+        "400":
+          description: Некорректный ID файла
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Файл не найден
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Получение информации о файле
+      tags:
+      - files
+  /files/{file_id}/rename:
+    put:
+      description: Переименовывает файл в MinIO и обновляет информацию в БД
+      parameters:
+      - description: ID файла
+        in: path
+        name: file_id
+        required: true
+        type: integer
+      - description: Новое имя файла
+        in: query
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Файл успешно переименован
+          schema:
+            $ref: '#/definitions/models.File'
+        "400":
+          description: Некорректные параметры запроса
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Файл не найден
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Переименование файла
+      tags:
+      - files
+  /files/names:
+    get:
+      description: Получает список файлов с пагинацией
+      parameters:
+      - default: 10
+        description: Количество файлов на странице
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: Смещение для пагинации
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Список файлов
+          schema:
+            items:
+              $ref: '#/definitions/dto.FileInformation'
+            type: array
+        "400":
+          description: Некорректные параметры пагинации
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Получение списка файлов
+      tags:
+      - files
+schemes:
+- http
+swagger: "2.0"
+tags:
+- description: Операции с файлами
+  name: files
+- description: Операции с типами файлов
+  name: file-types
