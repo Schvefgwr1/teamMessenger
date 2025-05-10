@@ -75,13 +75,11 @@ CREATE TABLE chat_service.chats (
 
 CREATE TABLE chat_service.chat_permissions (
                                          id INT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-                                         chat_id UUID REFERENCES chat_service.chats(id) ON DELETE CASCADE,
                                          name VARCHAR(100) NOT NULL
 );
 
 CREATE TABLE chat_service.chat_roles (
                                          id INT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-                                         chat_id UUID REFERENCES chat_service.chats(id) ON DELETE CASCADE,
                                          name VARCHAR(100) NOT NULL
 );
 
@@ -93,15 +91,15 @@ CREATE TABLE chat_service.chat_role_permissions (
 
 CREATE TABLE chat_service.chat_user (
                                         chat_id UUID REFERENCES chat_service.chats(id) ON DELETE CASCADE,
-                                        user_id UUID REFERENCES user_service.users(id) ON DELETE CASCADE,
+                                        user_id UUID,
                                         role_id INT REFERENCES chat_service.chat_roles(id),
                                         PRIMARY KEY (chat_id, user_id)
 );
 
 CREATE TABLE chat_service.messages (
                                        id UUID PRIMARY KEY,
-                                       chat_id UUID REFERENCES chat_service.chats(id) ON DELETE CASCADE,
-                                       sender_id UUID REFERENCES user_service.users(id) ON DELETE SET NULL,
+                                       chat_id UUID REFERENCES chat_user(chat_id),
+                                       sender_id UUID REFERENCES chat_user(user_id),
                                        content TEXT NOT NULL,
                                        updated_at TIMESTAMP,
                                        created_at TIMESTAMP DEFAULT NOW()
@@ -109,7 +107,7 @@ CREATE TABLE chat_service.messages (
 
 CREATE TABLE chat_service.message_files (
                                             message_id UUID REFERENCES chat_service.messages(id) ON DELETE CASCADE,
-                                            file_id INT REFERENCES file_service.files(id) ON DELETE CASCADE,
+                                            file_id INT,
                                             PRIMARY KEY (message_id, file_id)
 );
 
@@ -127,15 +125,15 @@ CREATE TABLE task_service.tasks (
                                     title VARCHAR(255) NOT NULL,
                                     description TEXT,
                                     status INT REFERENCES task_service.task_statuses,
-                                    creator_id UUID REFERENCES user_service.users(id) ON DELETE SET NULL,
-                                    executor_id UUID REFERENCES user_service.users(id) ON DELETE SET NULL,
-                                    chat_id UUID REFERENCES chat_service.chats(id) ON DELETE SET NULL,
+                                    creator_id UUID,
+                                    executor_id UUID,
+                                    chat_id UUID,
                                     created_at TIMESTAMP DEFAULT NOW()
 );
 
 CREATE TABLE task_service.task_files (
                                          task_id INT REFERENCES task_service.tasks(id) ON DELETE CASCADE,
-                                         file_id INT REFERENCES file_service.files(id) ON DELETE CASCADE,
+                                         file_id INT,
                                          PRIMARY KEY (task_id, file_id)
 );
 

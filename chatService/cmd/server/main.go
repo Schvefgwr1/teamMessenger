@@ -1,23 +1,22 @@
 package main
 
 import (
+	"chatService/internal/controllers"
+	"chatService/internal/handlers"
+	"chatService/internal/middlewares"
+	"chatService/internal/repositories"
+	"chatService/internal/routes"
+	"chatService/internal/services"
 	"common/config"
 	"common/db"
 	"github.com/gin-gonic/gin"
-	swaggerFiles "github.com/swaggo/files"
-	ginSwagger "github.com/swaggo/gin-swagger"
 	"log"
 	"strconv"
-	_ "userService/docs"
-	"userService/internal/controllers"
-	"userService/internal/handlers"
-	"userService/internal/repositories"
-	"userService/internal/routes"
 )
 
-// @title User Service API
+// @title Chat Service API
 // @version 1.0
-// @description API сервиса для работы с пользователями
+// @description API сервиса для работы с чатами
 // @host localhost:8082
 // @termsOfService  http://swagger.io/terms/
 // @contact.name   API Support
@@ -58,27 +57,30 @@ func main() {
 	}
 
 	// Init repositories
-	permissionRepository := repositories.NewPermissionRepository(db)
-	roleRepository := repositories.NewRoleRepository(db)
-	userRepository := repositories.NewUserRepository(db)
+	messageRepository := repositories.NewMessageRepository(db)
+	chatRoleRepository := repositories.NewChatRoleRepository(db)
+	chatUserRepository := repositories.NewChatUserRepository(db)
+	chatRepository := repositories.NewChatRepository(db)
 
 	// Init controllers
-	permissionController := controllers.NewPermissionController(permissionRepository)
-	roleController := controllers.NewRoleController(roleRepository, permissionRepository)
-	userController := controllers.NewUserController(userRepository, roleRepository)
-	authController := controllers.NewAuthController(userRepository, roleRepository)
+	messageController := controllers.NewMessageController(messageRepository, chatRepository, chatUserRepository)
+	chatController := controllers.NewChatController(chatRepository, chatUserRepository, chatRoleRepository)
 
 	// Init handlers
-	permissionHandler := handlers.NewPermissionHandler(permissionController)
-	roleHandler := handlers.NewRoleHandler(roleController)
-	userHandler := handlers.NewUserHandler(userController)
-	authHandler := handlers.NewAuthHandler(authController)
+	messageHandler := handlers.NewMessageHandler(messageController)
+	chatHandler := handlers.NewChatHandler(chatController)
+
+	//Init services
+	permissionsService := services.NewChatPermissionService(chatUserRepository)
+
+	//Init middlewares
+	permissionsMiddleware := middlewares.NewChatPermissionMiddleware(permissionsService)
 
 	r := gin.Default()
 
-	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+	//r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
-	routes.RegisterRoutes(r, authHandler, userHandler, roleHandler, permissionHandler)
+	routes.RegisterChatRoutes(r, chatHandler, messageHandler, permissionsMiddleware)
 
 	_ = r.Run(":" + strconv.Itoa(cfg.App.Port))
 }

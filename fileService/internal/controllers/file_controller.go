@@ -2,7 +2,7 @@ package controllers
 
 import (
 	"common/config"
-	ufc "common/contracts/user-file-contracts"
+	fc "common/contracts/file-contracts"
 	"context"
 	"errors"
 	"fileService/internal/dto"
@@ -87,7 +87,7 @@ func (c *FileController) UploadFile(fileHeader *multipart.FileHeader) (*models.F
 }
 
 // GetFile получает актуальный URL файла из MinIO
-func (c *FileController) GetFile(id int) (*ufc.File, error) {
+func (c *FileController) GetFile(id int) (*fc.File, error) {
 	file, err := c.repo.GetFileByID(id)
 	if err != nil {
 		return nil, err
@@ -111,11 +111,11 @@ func (c *FileController) GetFile(id int) (*ufc.File, error) {
 		}
 	}
 
-	fileTypeContract := &ufc.FileType{
+	fileTypeContract := &fc.FileType{
 		ID:   file.FileTypeID,
 		Name: file.FileType.Name,
 	}
-	fileContract := &ufc.File{
+	fileContract := &fc.File{
 		ID:         file.ID,
 		Name:       file.Name,
 		FileTypeID: file.FileTypeID,

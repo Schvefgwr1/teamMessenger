@@ -1,4 +1,4 @@
-package user_file_contracts
+package file_contracts
 
 // FileType — описание типа файла
 type FileType struct {

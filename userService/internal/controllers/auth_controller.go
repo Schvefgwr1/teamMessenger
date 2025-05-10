@@ -1,10 +1,10 @@
 package controllers
 
 import (
+	httpClients "common/http_clients"
 	"github.com/google/uuid"
 	"userService/internal/custom_errors"
 	"userService/internal/handlers/dto"
-	httpClients "userService/internal/http_clients"
 	"userService/internal/models"
 	"userService/internal/repositories"
 	"userService/internal/utils"

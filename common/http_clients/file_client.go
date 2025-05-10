@@ -1,7 +1,7 @@
 package http_clients
 
 import (
-	ufc "common/contracts/user-file-contracts"
+	fc "common/contracts/file-contracts"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -9,7 +9,7 @@ import (
 )
 
 // GetFileByID делает HTTP-запрос к файловому сервису и возвращает структуру File
-func GetFileByID(fileID int) (*ufc.File, error) {
+func GetFileByID(fileID int) (*fc.File, error) {
 	url := fmt.Sprintf("http://localhost:8080/api/v1/files/%d", fileID)
 
 	resp, err := http.Get(url)
@@ -22,7 +22,7 @@ func GetFileByID(fileID int) (*ufc.File, error) {
 		return nil, errors.New("can't get correct file: " + resp.Status)
 	}
 
-	var file ufc.File
+	var file fc.File
 	if err := json.NewDecoder(resp.Body).Decode(&file); err != nil {
 		return nil, fmt.Errorf("error of JSON encoding: %w", err)
 	}

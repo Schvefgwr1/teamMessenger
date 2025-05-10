@@ -1,11 +1,11 @@
 package controllers
 
 import (
-	ufc "common/contracts/user-file-contracts"
+	fc "common/contracts/file-contracts"
+	httpClients "common/http_clients"
 	"github.com/google/uuid"
 	"userService/internal/custom_errors"
 	"userService/internal/handlers/dto"
-	httpClients "userService/internal/http_clients"
 	"userService/internal/models"
 	"userService/internal/repositories"
 )
@@ -19,7 +19,7 @@ func NewUserController(userRepo *repositories.UserRepository, roleRepo *reposito
 	return &UserController{userRepo: userRepo, roleRepo: roleRepo}
 }
 
-func (c *UserController) GetUserProfile(id uuid.UUID) (*models.User, *ufc.File, error) {
+func (c *UserController) GetUserProfile(id uuid.UUID) (*models.User, *fc.File, error) {
 	user, err := c.userRepo.GetUserByID(id)
 	if err != nil {
 		return nil, nil, err

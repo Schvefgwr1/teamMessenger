@@ -1,0 +1,109 @@
+package controllers
+
+import (
+	"chatService/internal/custom_errors"
+	"chatService/internal/handlers/dto"
+	"chatService/internal/models"
+	"chatService/internal/repositories"
+	httpClients "common/http_clients"
+	"github.com/google/uuid"
+	"time"
+)
+
+type MessageController struct {
+	MessageRepo  repositories.MessageRepository
+	ChatRepo     repositories.ChatRepository
+	ChatUserRepo repositories.ChatUserRepository
+}
+
+func NewMessageController(messageRepo repositories.MessageRepository, chatRepo repositories.ChatRepository, chatUserRepo repositories.ChatUserRepository) *MessageController {
+	return &MessageController{messageRepo, chatRepo, chatUserRepo}
+}
+
+func (c *MessageController) SendMessage(senderID, chatID uuid.UUID, dto *dto.CreateMessageDTO) (*models.Message, error) {
+	_, err := c.ChatRepo.GetChatByID(chatID)
+	if err != nil {
+		return nil, custom_errors.ErrInvalidCredentials
+	}
+
+	userResp, err := httpClients.GetUserByID(&senderID)
+	if err != nil {
+		return nil, custom_errors.NewUserClientError(err.Error())
+	}
+	if userResp.User == nil {
+		return nil, custom_errors.NewUserClientError("sender not found")
+	}
+
+	for _, fileID := range dto.FileIDs {
+		file, err := httpClients.GetFileByID(fileID)
+		if err != nil {
+			return nil, custom_errors.NewGetFileHTTPError(fileID, err.Error())
+		}
+		if file.ID <= 0 {
+			return nil, custom_errors.NewFileNotFoundError(fileID)
+		}
+	}
+
+	msg := &models.Message{
+		ID:        uuid.New(),
+		ChatID:    chatID,
+		SenderID:  &senderID,
+		Content:   dto.Content,
+		CreatedAt: time.Now(),
+	}
+
+	if err := c.MessageRepo.CreateMessage(msg); err != nil {
+		return nil, custom_errors.NewDatabaseError(err.Error())
+	}
+
+	for _, fileID := range dto.FileIDs {
+		messageFile := &models.MessageFile{
+			MessageID: msg.ID,
+			FileID:    fileID,
+		}
+		if err := c.MessageRepo.CreateMessageFile(messageFile); err != nil {
+			return nil, custom_errors.NewDatabaseError(err.Error())
+		}
+	}
+
+	newMsg, errMsg := c.MessageRepo.GetMessageWithFile(msg.ID)
+	if errMsg != nil {
+		return nil, custom_errors.NewDatabaseError(errMsg.Error())
+	}
+	return newMsg, nil
+}
+
+func (c *MessageController) GetChatMessages(chatID uuid.UUID, offset, limit int) ([]models.Message, error) {
+	_, err := c.ChatRepo.GetChatByID(chatID)
+	if err != nil {
+		return nil, custom_errors.ErrInvalidCredentials
+	}
+
+	messages, err := c.MessageRepo.GetChatMessages(chatID, offset, limit)
+	if err != nil {
+		return nil, custom_errors.NewDatabaseError(err.Error())
+	}
+
+	return messages, nil
+}
+
+func (c *MessageController) SearchMessages(userID, chatID uuid.UUID, query string, limit, offset int) ([]models.Message, int64, error) {
+	if query == "" {
+		return nil, 0, custom_errors.ErrEmptyQuery
+	}
+
+	_, err := c.ChatRepo.GetChatByID(chatID)
+	if err != nil {
+		return nil, 0, custom_errors.ErrChatNotFound
+	}
+
+	user, err := c.ChatUserRepo.GetChatUser(userID, chatID)
+	if err != nil {
+		return nil, 0, err
+	}
+	if user == nil {
+		return nil, 0, custom_errors.ErrUnauthorizedChat
+	}
+
+	return c.MessageRepo.SearchMessages(userID, chatID, query, limit, offset)
+}

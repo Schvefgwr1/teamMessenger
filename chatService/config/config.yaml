@@ -1,0 +1,8 @@
+db:
+  host: localhost
+  user: postgres
+  password: postgres
+  name: team_messenger
+  port: 5432
+app:
+  port: 8083
