@@ -5,6 +5,7 @@ import (
 	"chatService/internal/handlers/dto"
 	"chatService/internal/models"
 	"chatService/internal/repositories"
+	fc "common/contracts/file-contracts"
 	httpClients "common/http_clients"
 	"github.com/google/uuid"
 	"time"
@@ -73,7 +74,7 @@ func (c *MessageController) SendMessage(senderID, chatID uuid.UUID, dto *dto.Cre
 	return newMsg, nil
 }
 
-func (c *MessageController) GetChatMessages(chatID uuid.UUID, offset, limit int) ([]models.Message, error) {
+func (c *MessageController) GetChatMessages(chatID uuid.UUID, offset, limit int) (*[]dto.GetChatMessage, error) {
 	_, err := c.ChatRepo.GetChatByID(chatID)
 	if err != nil {
 		return nil, custom_errors.ErrInvalidCredentials
@@ -83,8 +84,27 @@ func (c *MessageController) GetChatMessages(chatID uuid.UUID, offset, limit int)
 	if err != nil {
 		return nil, custom_errors.NewDatabaseError(err.Error())
 	}
-
-	return messages, nil
+	var messagesResponse []dto.GetChatMessage
+	for _, message := range messages {
+		var files []*fc.File
+		for _, file := range message.Files {
+			fileHTTP, err := httpClients.GetFileByID(file.FileID)
+			if err != nil {
+				return nil, custom_errors.NewGetFileHTTPError(file.FileID, err.Error())
+			}
+			files = append(files, fileHTTP)
+		}
+		messagesResponse = append(messagesResponse, dto.GetChatMessage{
+			ID:        message.ID,
+			ChatID:    message.ChatID,
+			SenderID:  message.SenderID,
+			Content:   message.Content,
+			UpdatedAt: message.UpdatedAt,
+			CreatedAt: message.CreatedAt,
+			Files:     &files,
+		})
+	}
+	return &messagesResponse, nil
 }
 
 func (c *MessageController) SearchMessages(userID, chatID uuid.UUID, query string, limit, offset int) ([]models.Message, int64, error) {

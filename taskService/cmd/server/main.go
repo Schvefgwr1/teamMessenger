@@ -2,9 +2,14 @@ package main
 
 import (
 	"common/config"
+	"common/db"
 	"github.com/gin-gonic/gin"
 	"log"
 	"strconv"
+	"taskService/internal/controllers"
+	"taskService/internal/handlers"
+	"taskService/internal/repositories"
+	"taskService/internal/routes"
 )
 
 func main() {
@@ -15,26 +20,29 @@ func main() {
 		return
 	}
 
-	////Init DB
-	//db, err := db.InitDB(cfg)
-	//if err != nil {
-	//	log.Fatal("Can't init DB: " + err.Error())
-	//	return
-	//}
+	//Init DB
+	initDB, err := db.InitDB(cfg)
+	if err != nil {
+		log.Fatal("Can't init DB: " + err.Error())
+		return
+	}
 
 	//// Init repositories
-	//fileRepo := repositories.NewFileRepository(db)
-	//fileTypeRepo := repositories.NewFileTypeRepository(db)
-	//
+	taskRepo := repositories.NewTaskRepository(initDB)
+	taskFileRepo := repositories.NewTaskFileRepository(initDB)
+	taskStatusRepo := repositories.NewTaskStatusRepository(initDB)
+
 	//// Init controllers
-	//fileController := controllers.NewFileController(fileRepo, fileTypeRepo, minio, &cfg.MinIO)
-	//fileTypeController := controllers.NewFileTypeController(fileTypeRepo)
-	//
+	taskController := controllers.NewTaskController(taskRepo, taskStatusRepo, taskFileRepo)
+	taskStatusController := controllers.NewTaskStatusController(taskStatusRepo)
+
 	//// Init handlers
-	//fileHandler := handlers.NewFileHandler(fileController)
-	//fileTypeHandler := handlers.NewFileTypeHandler(fileTypeController)
+	taskHandler := handlers.NewTaskHandler(taskController)
+	taskStatusHandler := handlers.NewTaskStatusHandler(taskStatusController)
 
 	r := gin.Default()
+	routes.RegisterTaskStatusRoutes(r, taskStatusHandler)
+	routes.RegisterTaskRoutes(r, taskHandler)
 
 	_ = r.Run(":" + strconv.Itoa(cfg.App.Port))
 }

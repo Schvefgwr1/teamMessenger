@@ -4,6 +4,7 @@
     <inspection_tool class="GoDfaErrorMayBeNotNil" enabled="true" level="WARNING" enabled_by_default="true">
       <functions>
         <function importPath="gorm.io/gorm" name="Open" />
+        <function importPath="common/http_clients" name="GetFileByID" />
       </functions>
     </inspection_tool>
   </profile>
