@@ -1,10 +1,10 @@
 package controllers
 
 import (
+	au "common/contracts/api-user"
 	httpClients "common/http_clients"
 	"github.com/google/uuid"
 	"userService/internal/custom_errors"
-	"userService/internal/handlers/dto"
 	"userService/internal/models"
 	"userService/internal/repositories"
 	"userService/internal/utils"
@@ -19,7 +19,7 @@ func NewAuthController(userRepo *repositories.UserRepository, roleRepo *reposito
 	return &AuthController{userRepo: userRepo, roleRepo: roleRepo}
 }
 
-func (c *AuthController) Register(req *dto.Register) (*models.User, error) {
+func (c *AuthController) Register(req *au.RegisterUserRequest) (*models.User, error) {
 	hashedPassword, err := utils.HashPassword(req.Password)
 	if err != nil {
 		return nil, err
@@ -72,7 +72,7 @@ func (c *AuthController) Register(req *dto.Register) (*models.User, error) {
 	return user, nil
 }
 
-func (c *AuthController) Login(req *dto.Login) (string, error) {
+func (c *AuthController) Login(req *au.Login) (string, error) {
 	user, err := c.userRepo.GetUserByUsername(req.Login)
 	if err != nil {
 		return "", custom_errors.ErrInvalidCredentials

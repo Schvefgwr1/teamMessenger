@@ -1,6 +1,6 @@
-package dto
+package api_user
 
-type UserUpdate struct {
+type UpdateUserRequest struct {
 	Username     *string `json:"username"`
 	Description  *string `json:"description"`
 	Gender       *string `json:"gender"`

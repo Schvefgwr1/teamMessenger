@@ -1,11 +1,11 @@
 package controllers
 
 import (
+	au "common/contracts/api-user"
 	fc "common/contracts/file-contracts"
 	httpClients "common/http_clients"
 	"github.com/google/uuid"
 	"userService/internal/custom_errors"
-	"userService/internal/handlers/dto"
 	"userService/internal/models"
 	"userService/internal/repositories"
 )
@@ -32,7 +32,7 @@ func (c *UserController) GetUserProfile(id uuid.UUID) (*models.User, *fc.File, e
 	return user, file, nil
 }
 
-func (c *UserController) UpdateUserProfile(req *dto.UserUpdate, userId *uuid.UUID) error {
+func (c *UserController) UpdateUserProfile(req *au.UpdateUserRequest, userId *uuid.UUID) error {
 	var user *models.User
 	user, err := c.userRepo.GetUserByID(*userId)
 	if err != nil {

@@ -1,12 +1,12 @@
 package handlers
 
 import (
+	au "common/contracts/api-user"
 	"errors"
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"userService/internal/controllers"
 	"userService/internal/custom_errors"
-	"userService/internal/handlers/dto"
 )
 
 type AuthHandler struct {
@@ -23,7 +23,7 @@ func NewAuthHandler(authController *controllers.AuthController) *AuthHandler {
 // @Tags auth
 // @Accept json
 // @Produce json
-// @Param user body dto.Register true "Данные для регистрации"
+// @Param user body au.RegisterUserRequest true "Данные для регистрации"
 // @Success 201 {object} models.User "Пользователь успешно зарегистрирован"
 // @Failure 400 {object} map[string]interface{} "Некорректный запрос"
 // @Failure 409 {object} map[string]interface{} "Почта или логин уже заняты"
@@ -31,7 +31,7 @@ func NewAuthHandler(authController *controllers.AuthController) *AuthHandler {
 // @Failure 500 {object} map[string]interface{} "Внутренняя ошибка сервера"
 // @Router /auth/register [post]
 func (h *AuthHandler) Register(c *gin.Context) {
-	var req dto.Register
+	var req au.RegisterUserRequest
 
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request payload: " + err.Error()})
@@ -78,7 +78,7 @@ func (h *AuthHandler) Register(c *gin.Context) {
 // @Failure 500 {object} map[string]interface{} "Ошибка генерации токена или сервера"
 // @Router /auth/login [post]
 func (h *AuthHandler) Login(c *gin.Context) {
-	var req dto.Login
+	var req au.Login
 
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request payload: " + err.Error()})

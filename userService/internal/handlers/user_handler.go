@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	au "common/contracts/api-user"
 	"errors"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -8,7 +9,6 @@ import (
 	"net/http"
 	"userService/internal/controllers"
 	"userService/internal/custom_errors"
-	"userService/internal/handlers/dto"
 )
 
 type UserHandler struct {
@@ -66,7 +66,7 @@ func (h *UserHandler) GetProfile(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param user_id path string true "UUID пользователя"
-// @Param profile body dto.UserUpdate true "Новые данные профиля"
+// @Param profile body au.UpdateUserRequest true "Новые данные профиля"
 // @Success 200 {object} map[string]interface{} "Профиль успешно обновлен"
 // @Failure 400 {object} map[string]interface{} "Некорректный запрос или файл"
 // @Failure 401 {object} map[string]interface{} "Неверные учетные данные"
@@ -82,7 +82,7 @@ func (h *UserHandler) UpdateProfile(c *gin.Context) {
 		return
 	}
 
-	var req dto.UserUpdate
+	var req au.UpdateUserRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request payload: " + err.Error()})
 		return
