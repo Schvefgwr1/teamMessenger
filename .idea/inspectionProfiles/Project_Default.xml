@@ -6,6 +6,9 @@
         <function importPath="gorm.io/gorm" name="Open" />
         <function importPath="common/http_clients" name="GetFileByID" />
       </functions>
+      <methods>
+        <method importPath="apiService/internal/controllers" receiver="*UserController" name="UpdateUser" />
+      </methods>
     </inspection_tool>
   </profile>
 </component>

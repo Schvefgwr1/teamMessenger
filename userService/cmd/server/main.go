@@ -73,12 +73,13 @@ func main() {
 	roleHandler := handlers.NewRoleHandler(roleController)
 	userHandler := handlers.NewUserHandler(userController)
 	authHandler := handlers.NewAuthHandler(authController)
+	keyHandler := handlers.NewKeyHandler()
 
 	r := gin.Default()
 
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
-	routes.RegisterRoutes(r, authHandler, userHandler, roleHandler, permissionHandler)
+	routes.RegisterRoutes(r, authHandler, userHandler, roleHandler, permissionHandler, keyHandler)
 
 	_ = r.Run(":" + strconv.Itoa(cfg.App.Port))
 }

@@ -72,14 +72,14 @@ func (c *AuthController) Register(req *au.RegisterUserRequest) (*models.User, er
 	return user, nil
 }
 
-func (c *AuthController) Login(req *au.Login) (string, error) {
+func (c *AuthController) Login(req *au.Login) (string, uuid.UUID, error) {
 	user, err := c.userRepo.GetUserByUsername(req.Login)
 	if err != nil {
-		return "", custom_errors.ErrInvalidCredentials
+		return "", uuid.Nil, custom_errors.ErrInvalidCredentials
 	}
 
 	if !utils.CheckPasswordHash(req.Password, user.PasswordHash) {
-		return "", custom_errors.ErrInvalidCredentials
+		return "", uuid.Nil, custom_errors.ErrInvalidCredentials
 	}
 
 	var permNames []string
@@ -89,8 +89,8 @@ func (c *AuthController) Login(req *au.Login) (string, error) {
 
 	token, err := utils.GenerateJWT(user.ID, permNames)
 	if err != nil {
-		return "", custom_errors.ErrTokenGeneration
+		return "", uuid.Nil, custom_errors.ErrTokenGeneration
 	}
 
-	return token, nil
+	return token, user.ID, nil
 }

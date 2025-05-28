@@ -1,13 +1,18 @@
 package http_clients
 
 import (
+	"apiService/internal/custom_errors"
 	"bytes"
 	af "common/contracts/api-file"
 	"encoding/json"
 	"fmt"
 	"io"
+	"mime"
 	"mime/multipart"
 	"net/http"
+	"net/textproto"
+	"path/filepath"
+	"strings"
 )
 
 type FileClient interface {
@@ -26,9 +31,21 @@ func (c *fileClient) UploadFile(file *multipart.FileHeader) (*af.FileUploadRespo
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
 
-	part, err := writer.CreateFormFile("file", file.Filename)
+	// Определим MIME-тип (можно на основе расширения)
+	contentType := mime.TypeByExtension(filepath.Ext(file.Filename))
+	if contentType == "" {
+		// fallback
+		contentType = "application/octet-stream"
+	}
+
+	// Создаём кастомную часть с Content-Disposition и Content-Type
+	h := make(textproto.MIMEHeader)
+	h.Set("Content-Disposition", fmt.Sprintf(`form-data; name="file"; filename="%s"`, file.Filename))
+	h.Set("Content-Type", contentType)
+
+	part, err := writer.CreatePart(h)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create form file: %w", err)
+		return nil, fmt.Errorf("failed to create form file part: %w", err)
 	}
 
 	src, err := file.Open()
@@ -37,10 +54,13 @@ func (c *fileClient) UploadFile(file *multipart.FileHeader) (*af.FileUploadRespo
 	}
 	defer src.Close()
 
-	if _, err = io.Copy(part, src); err != nil {
+	if _, err := io.Copy(part, src); err != nil {
 		return nil, fmt.Errorf("failed to copy file: %w", err)
 	}
-	writer.Close()
+
+	if err := writer.Close(); err != nil {
+		return nil, fmt.Errorf("failed to close writer: %w", err)
+	}
 
 	req, err := http.NewRequest("POST", c.host+"/api/v1/files/upload", body)
 	if err != nil {
@@ -56,8 +76,16 @@ func (c *fileClient) UploadFile(file *multipart.FileHeader) (*af.FileUploadRespo
 	defer resp.Body.Close()
 
 	if resp.StatusCode >= 400 {
-		body, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("file upload failed: %s", string(body))
+		responseBody, _ := io.ReadAll(resp.Body)
+		if resp.StatusCode == http.StatusConflict {
+			if strings.Contains(string(responseBody), "already exists in database") {
+				return nil, custom_errors.NewFileServiceConflictError(file.Filename, custom_errors.FileSourceDB)
+			}
+			if strings.Contains(string(responseBody), "already exists in MinIO") {
+				return nil, custom_errors.NewFileServiceConflictError(file.Filename, custom_errors.FileSourceMinIO)
+			}
+		}
+		return nil, fmt.Errorf("file upload failed: %s", string(responseBody))
 	}
 
 	var uploadedFile af.FileUploadResponse

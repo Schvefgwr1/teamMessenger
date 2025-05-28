@@ -10,10 +10,10 @@ import (
 )
 
 type AuthHandler struct {
-	authController controllers.AuthController
+	authController *controllers.AuthController
 }
 
-func NewAuthHandler(authController controllers.AuthController) *AuthHandler {
+func NewAuthHandler(authController *controllers.AuthController) *AuthHandler {
 	return &AuthHandler{authController: authController}
 }
 
@@ -50,11 +50,11 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		return
 	}
 
-	token, errReq := h.authController.Login(&loginData)
+	token, userID, errReq := h.authController.Login(&loginData)
 	if errReq != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": errReq})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"token": token})
+	c.JSON(http.StatusOK, gin.H{"token": token, "userID": userID})
 
 }

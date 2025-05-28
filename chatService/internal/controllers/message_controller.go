@@ -5,6 +5,7 @@ import (
 	"chatService/internal/handlers/dto"
 	"chatService/internal/models"
 	"chatService/internal/repositories"
+	ac "common/contracts/api-chat"
 	fc "common/contracts/file-contracts"
 	httpClients "common/http_clients"
 	"github.com/google/uuid"
@@ -107,23 +108,41 @@ func (c *MessageController) GetChatMessages(chatID uuid.UUID, offset, limit int)
 	return &messagesResponse, nil
 }
 
-func (c *MessageController) SearchMessages(userID, chatID uuid.UUID, query string, limit, offset int) ([]models.Message, int64, error) {
+func (c *MessageController) SearchMessages(userID, chatID uuid.UUID, query string, limit, offset int) (*ac.GetSearchResponse, error) {
 	if query == "" {
-		return nil, 0, custom_errors.ErrEmptyQuery
+		return nil, custom_errors.ErrEmptyQuery
 	}
 
 	_, err := c.ChatRepo.GetChatByID(chatID)
 	if err != nil {
-		return nil, 0, custom_errors.ErrChatNotFound
+		return nil, custom_errors.ErrChatNotFound
 	}
 
 	user, err := c.ChatUserRepo.GetChatUser(userID, chatID)
 	if err != nil {
-		return nil, 0, err
+		return nil, err
 	}
 	if user == nil {
-		return nil, 0, custom_errors.ErrUnauthorizedChat
+		return nil, custom_errors.ErrUnauthorizedChat
 	}
 
-	return c.MessageRepo.SearchMessages(userID, chatID, query, limit, offset)
+	messages, total, err := c.MessageRepo.SearchMessages(userID, chatID, query, limit, offset)
+	if err != nil {
+		return nil, custom_errors.NewDatabaseError(err.Error())
+	}
+
+	var messageResponse []ac.GetChatMessage
+	for _, message := range messages {
+		messageResponse = append(messageResponse, ac.GetChatMessage{
+			ID:        message.ID,
+			ChatID:    message.ChatID,
+			SenderID:  message.SenderID,
+			Content:   message.Content,
+			UpdatedAt: message.UpdatedAt,
+			CreatedAt: message.CreatedAt,
+			Files:     nil,
+		})
+	}
+
+	return &ac.GetSearchResponse{Messages: &messageResponse, Total: &total}, nil
 }

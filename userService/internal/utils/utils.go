@@ -53,8 +53,10 @@ func LoadPrivateKey() (*rsa.PrivateKey, error) {
 }
 
 // ExtractPublicKeyFromFile загружает RSA публичный ключ из PEM-файла
-func ExtractPublicKeyFromFile(path string) (*rsa.PublicKey, error) {
-	keyBytes, err := os.ReadFile(path)
+func ExtractPublicKeyFromFile() (*rsa.PublicKey, error) {
+	wd, err := os.Getwd()
+	keyPath := filepath.Join(wd, "cmd", "keys", "public.pem")
+	keyBytes, err := os.ReadFile(keyPath)
 	if err != nil {
 		return nil, err
 	}

@@ -13,7 +13,9 @@ import (
 	"golang.org/x/xerrors"
 	"log"
 	"mime/multipart"
+	"strconv"
 	"strings"
+	"time"
 )
 
 type FileController struct {
@@ -41,7 +43,7 @@ func (c *FileController) UploadFile(fileHeader *multipart.FileHeader) (*models.F
 	defer file.Close()
 
 	bucketName := c.minioConfig.Bucket
-	objectName := fileHeader.Filename
+	objectName := strconv.Itoa(time.Now().Nanosecond()) + "_" + fileHeader.Filename
 
 	// Проверяем, поддерживается ли тип файла
 	fileType, err := c.repoType.GetFileTypeByName(fileHeader.Header.Get("Content-Type"))

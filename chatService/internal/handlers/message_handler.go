@@ -141,7 +141,7 @@ func (h *MessageHandler) SearchMessages(c *gin.Context) {
 		return
 	}
 
-	messages, total, err := h.MessageController.SearchMessages(userID, chatID, query, limit, offset)
+	messages, err := h.MessageController.SearchMessages(userID, chatID, query, limit, offset)
 	if err != nil {
 		switch {
 		case errors.Is(err, custom_errors.ErrEmptyQuery):
@@ -156,8 +156,5 @@ func (h *MessageHandler) SearchMessages(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"messages": messages,
-		"total":    total,
-	})
+	c.JSON(http.StatusOK, messages)
 }

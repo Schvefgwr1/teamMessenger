@@ -3,17 +3,21 @@ package http_clients
 import (
 	"bytes"
 	au "common/contracts/api-user"
+	"crypto/rsa"
 	"encoding/json"
 	"fmt"
+	"github.com/google/uuid"
 	"io"
+	"math/big"
 	"net/http"
 )
 
 type UserClient interface {
 	RegisterUser(data au.RegisterUserRequest) (*au.RegisterUserResponse, error)
-	Login(body *au.Login) (string, error)
+	Login(body *au.Login) (string, uuid.UUID, error)
 	GetUserByID(s string) (*au.GetUserResponse, error)
 	UpdateUser(userID string, req *au.UpdateUserRequest) (*au.UpdateUserResponse, error)
+	GetPublicKey() (*rsa.PublicKey, error)
 }
 
 type userClient struct {
@@ -48,35 +52,36 @@ func (c *userClient) RegisterUser(data au.RegisterUserRequest) (*au.RegisterUser
 	return &user, nil
 }
 
-func (c *userClient) Login(body *au.Login) (string, error) {
+func (c *userClient) Login(body *au.Login) (string, uuid.UUID, error) {
 	payload, err := json.Marshal(body)
 	if err != nil {
-		return "", fmt.Errorf("failed to encode login request: %w", err)
+		return "", uuid.Nil, fmt.Errorf("failed to encode login request: %w", err)
 	}
 
 	resp, err := http.Post(c.host+"/api/v1/auth/login", "application/json", bytes.NewBuffer(payload))
 	if err != nil {
-		return "", fmt.Errorf("login request to user service failed: %w", err)
+		return "", uuid.Nil, fmt.Errorf("login request to user service failed: %w", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode >= 400 {
 		bodyBytes, _ := io.ReadAll(resp.Body)
-		return "", fmt.Errorf("login failed: %s", string(bodyBytes))
+		return "", uuid.Nil, fmt.Errorf("login failed: %s", string(bodyBytes))
 	}
 
 	var respBody struct {
-		Token string `json:"token"`
+		Token  string    `json:"token"`
+		UserID uuid.UUID `json:"userID"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&respBody); err != nil {
-		return "", fmt.Errorf("failed to decode login response: %w", err)
+		return "", uuid.Nil, fmt.Errorf("failed to decode login response: %w", err)
 	}
 
-	return respBody.Token, nil
+	return respBody.Token, respBody.UserID, nil
 }
 
 func (c *userClient) GetUserByID(userID string) (*au.GetUserResponse, error) {
-	url := fmt.Sprintf("%s/users/%s", c.host, userID)
+	url := fmt.Sprintf("%s/api/v1/users/%s", c.host, userID)
 
 	resp, err := http.Get(url)
 	if err != nil {
@@ -98,7 +103,7 @@ func (c *userClient) GetUserByID(userID string) (*au.GetUserResponse, error) {
 }
 
 func (c *userClient) UpdateUser(userID string, req *au.UpdateUserRequest) (*au.UpdateUserResponse, error) {
-	url := fmt.Sprintf("%s/users/%s", c.host, userID)
+	url := fmt.Sprintf("%s/api/v1/users/%s", c.host, userID)
 
 	payload, err := json.Marshal(req)
 	if err != nil {
@@ -131,4 +136,33 @@ func (c *userClient) UpdateUser(userID string, req *au.UpdateUserRequest) (*au.U
 	}
 
 	return &response, nil
+}
+
+func (c *userClient) GetPublicKey() (*rsa.PublicKey, error) {
+	resp, err := http.Get(c.host + "/api/v1/key")
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch public key: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode >= 400 {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("failed to fetch public key: %s", string(body))
+	}
+
+	var result struct {
+		Key struct {
+			N *big.Int `json:"N"`
+			E int      `json:"E"`
+		} `json:"key"`
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, fmt.Errorf("invalid response body: %w", err)
+	}
+
+	return &rsa.PublicKey{
+		N: result.Key.N,
+		E: result.Key.E,
+	}, nil
 }

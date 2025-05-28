@@ -1,9 +1,12 @@
 package controllers
 
 import (
-	dto "apiService/internal/dto"
+	"apiService/internal/custom_errors"
+	"apiService/internal/dto"
 	"apiService/internal/http_clients"
 	au "common/contracts/api-user"
+	"fmt"
+	"github.com/google/uuid"
 	"mime/multipart"
 )
 
@@ -18,14 +21,6 @@ func NewAuthController(fileClient http_clients.FileClient, userClient http_clien
 
 func (ctrl *AuthController) Register(userRequest *dto.RegisterUserRequestGateway, file *multipart.FileHeader) *dto.RegisterUserResponseGateway {
 	var registerData au.RegisterUserRequest
-	var avatarUploadWarning string
-
-	uploadedFile, uploadErr := ctrl.fileClient.UploadFile(file)
-	if uploadErr != nil {
-		avatarUploadWarning = uploadErr.Error()
-	} else {
-		registerData.AvatarID = uploadedFile.ID
-	}
 
 	registerData.Username = userRequest.Username
 	registerData.Email = userRequest.Email
@@ -36,18 +31,43 @@ func (ctrl *AuthController) Register(userRequest *dto.RegisterUserRequestGateway
 	registerData.RoleID = userRequest.RoleID
 
 	var response dto.RegisterUserResponseGateway
-	response.Warning = &avatarUploadWarning
-	// Register user
 	user, userErr := ctrl.userClient.RegisterUser(registerData)
 	if userErr != nil {
 		userErrStr := userErr.Error()
 		response.Error = &userErrStr
+		return &response
+	}
+	if user == nil {
+		response.Error = &custom_errors.ErrNilUserInClient
+		return &response
 	}
 	response.User = user
 
+	var avatarUploadWarning string
+	if file != nil {
+		uploadedFile, uploadErr := ctrl.fileClient.UploadFile(file)
+		if uploadErr != nil {
+			avatarUploadWarning = uploadErr.Error()
+		} else {
+			updateUserResp, err := ctrl.userClient.UpdateUser(
+				user.ID.String(),
+				&au.UpdateUserRequest{AvatarFileID: uploadedFile.ID},
+			)
+			if updateUserResp == nil {
+				response.Error = &custom_errors.ErrNilUserInClient
+				return &response
+			}
+			if err != nil {
+				avatarUploadWarning = fmt.Sprintf("Error of add avatar in user service: %s %s", err.Error(), updateUserResp.Error)
+			}
+			response.User.AvatarFileID = uploadedFile.ID
+		}
+	}
+
+	response.Warning = &avatarUploadWarning
 	return &response
 }
 
-func (ctrl *AuthController) Login(login *au.Login) (string, error) {
+func (ctrl *AuthController) Login(login *au.Login) (string, uuid.UUID, error) {
 	return ctrl.userClient.Login(login)
 }

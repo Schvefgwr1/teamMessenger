@@ -25,11 +25,15 @@ func (c *UserController) GetUserProfile(id uuid.UUID) (*models.User, *fc.File, e
 		return nil, nil, err
 	}
 
-	file, err := httpClients.GetFileByID(*user.AvatarFileID)
-	if err != nil {
-		return user, nil, err
+	if user.AvatarFileID != nil {
+		file, err := httpClients.GetFileByID(*user.AvatarFileID)
+		if err != nil {
+			return user, nil, err
+		} else {
+			return user, file, nil
+		}
 	}
-	return user, file, nil
+	return user, nil, nil
 }
 
 func (c *UserController) UpdateUserProfile(req *au.UpdateUserRequest, userId *uuid.UUID) error {

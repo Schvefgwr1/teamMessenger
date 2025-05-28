@@ -5,7 +5,7 @@ import (
 	"userService/internal/handlers"
 )
 
-func RegisterRoutes(router *gin.Engine, authHandler *handlers.AuthHandler, userHandler *handlers.UserHandler, roleHandler *handlers.RoleHandler, permHandler *handlers.PermissionHandler) {
+func RegisterRoutes(router *gin.Engine, authHandler *handlers.AuthHandler, userHandler *handlers.UserHandler, roleHandler *handlers.RoleHandler, permHandler *handlers.PermissionHandler, keyHandler handlers.KeyHandler) {
 	v1 := router.Group("/api/v1")
 	{
 		auth := v1.Group("/auth")
@@ -30,5 +30,7 @@ func RegisterRoutes(router *gin.Engine, authHandler *handlers.AuthHandler, userH
 		{
 			permissions.GET("/", permHandler.GetPermissions)
 		}
+
+		v1.GET("/key", keyHandler.GetPublicKey)
 	}
 }

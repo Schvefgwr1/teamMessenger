@@ -85,7 +85,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		return
 	}
 
-	token, err := h.authController.Login(&req)
+	token, userID, err := h.authController.Login(&req)
 	if err != nil {
 		switch {
 		case errors.Is(err, custom_errors.ErrInvalidCredentials):
@@ -98,5 +98,5 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"token": token})
+	c.JSON(http.StatusOK, gin.H{"token": token, "userID": userID})
 }
