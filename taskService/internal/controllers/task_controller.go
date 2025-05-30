@@ -35,25 +35,25 @@ func (c *TaskController) Create(taskDTO *dto.CreateTaskDTO) (*models.Task, error
 		return nil, customErrors.NewTaskStatusNotFoundError("created")
 	}
 
-	if _, err := http_clients.GetUserByID(&taskDTO.CreatorID); err != nil {
+	if _, errUser := http_clients.GetUserByID(&taskDTO.CreatorID); errUser != nil {
 		return nil, customErrors.NewGetUserHTTPError(taskDTO.CreatorID.String(), err.Error())
 	}
 
 	if taskDTO.ExecutorID != uuid.Nil {
-		if _, err := http_clients.GetUserByID(&taskDTO.ExecutorID); err != nil {
+		if _, errTask := http_clients.GetUserByID(&taskDTO.ExecutorID); errTask != nil {
 			return nil, customErrors.NewGetUserHTTPError(taskDTO.ExecutorID.String(), err.Error())
 		}
 	}
 
 	if taskDTO.ChatID != uuid.Nil {
-		if _, err := http_clients.GetChatByID(taskDTO.ChatID.String()); err != nil {
+		if _, errChat := http_clients.GetChatByID(taskDTO.ChatID.String()); errChat != nil {
 			return nil, customErrors.NewGetChatHTTPError(taskDTO.ChatID.String(), err.Error())
 		}
 	}
 
 	var taskFiles []models.TaskFile
 	for _, fileID := range taskDTO.FileIDs {
-		if _, err := http_clients.GetFileByID(fileID); err != nil {
+		if _, errFile := http_clients.GetFileByID(fileID); errFile != nil {
 			return nil, customErrors.NewGetFileHTTPError(fileID, err.Error())
 		}
 	}
@@ -81,6 +81,8 @@ func (c *TaskController) Create(taskDTO *dto.CreateTaskDTO) (*models.Task, error
 	if len(taskFiles) > 0 {
 		if err := c.TaskFileRepo.BulkCreate(taskFiles); err != nil {
 			return nil, err
+		} else {
+			task.Files = taskFiles
 		}
 	}
 

@@ -40,6 +40,7 @@ func main() {
 	fileClient := http_clients.NewFileClient("http://localhost:8080")
 	userClient := http_clients.NewUserClient("http://localhost:8082")
 	chatClient := http_clients.NewChatClient("http://localhost:8083")
+	taskClient := http_clients.NewTaskClient("http://localhost:8081")
 
 	var publicKey *rsa.PublicKey
 
@@ -52,17 +53,20 @@ func main() {
 	authController := controllers.NewAuthController(fileClient, userClient)
 	userController := controllers.NewUserController(fileClient, userClient)
 	chatController := controllers.NewChatController(chatClient, fileClient)
+	taskController := controllers.NewTaskController(taskClient, fileClient)
 
 	//Init handlers
 	authHandler := handlers.NewAuthHandler(authController)
 	userHandler := handlers.NewUserHandler(userController)
 	chatHandler := handlers.NewChatHandler(chatController)
+	taskHandler := handlers.NewTaskHandler(taskController)
 
 	r := gin.Default()
 
 	routes.RegisterAuthRoutes(r, authHandler)
 	routes.RegisterUserRoutes(r, userHandler, publicKey)
 	routes.RegisterChatRoutes(r, chatHandler, publicKey)
+	routes.RegisterTaskRoutes(r, taskHandler, publicKey)
 
 	_ = r.Run(":" + strconv.Itoa(cfg.App.Port))
 }

@@ -76,7 +76,7 @@ func (c *FileController) UploadFile(fileHeader *multipart.FileHeader) (*models.F
 	fileURL := fmt.Sprintf("http://%s/%s/%s", c.minioConfig.Host, bucketName, objectName)
 
 	newFile := &models.File{
-		Name:       fileHeader.Filename,
+		Name:       objectName,
 		FileTypeID: fileType.ID,
 		URL:        fileURL,
 	}
