@@ -12,6 +12,13 @@ type MinIO struct {
 	Bucket    string `yaml:"bucket"`
 }
 
+type Redis struct {
+	Host     string `yaml:"host"`
+	Port     int    `yaml:"port"`
+	Password string `yaml:"password"`
+	DB       int    `yaml:"DB"`
+}
+
 type Config struct {
 	Database struct {
 		Host     string `yaml:"host"`
@@ -21,6 +28,7 @@ type Config struct {
 		Port     int    `yaml:"port"`
 	} `yaml:"db"`
 	MinIO MinIO `yaml:"minio"`
+	Redis Redis `yaml:"redis"`
 	App   struct {
 		Port int `yaml:"port"`
 	} `yaml:"app"`

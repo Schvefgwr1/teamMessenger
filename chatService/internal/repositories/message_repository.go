@@ -46,7 +46,7 @@ func (r *messageRepository) GetChatMessages(chatID uuid.UUID, offset, limit int)
 	err := r.db.Where("chat_id = ?", chatID).
 		Offset(offset).Limit(limit).
 		Preload("Files").
-		Order("created_at asc").
+		Order("created_at desc").
 		Find(&messages).Error
 	return messages, err
 }

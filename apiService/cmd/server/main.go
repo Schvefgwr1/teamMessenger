@@ -6,7 +6,8 @@ import (
 	"apiService/internal/http_clients"
 	"apiService/internal/routes"
 	"apiService/internal/services"
-	"common/config"
+	common "common/config"
+	commonRedis "common/redis"
 	"crypto/rsa"
 	"github.com/gin-gonic/gin"
 	"log"
@@ -30,11 +31,17 @@ import (
 // @externalDocs.url https://swagger.io/resources/open-api/
 func main() {
 	//Upload config
-	cfg, err := config.LoadConfig("config/config.yaml")
+	cfg, err := common.LoadConfig("config/config.yaml")
 	if err != nil {
 		log.Fatal("Can't load config " + err.Error())
 		return
 	}
+
+	redisClient := commonRedis.NewRedisClient(&cfg.Redis)
+
+	// Init Redis services
+	sessionService := services.NewSessionService(redisClient)
+	cacheService := services.NewCacheService(redisClient)
 
 	// Init clients
 	fileClient := http_clients.NewFileClient("http://localhost:8080")
@@ -49,24 +56,24 @@ func main() {
 		log.Fatalf("Could not load public key: %v", errLoad)
 	}
 
-	//Init controllers
+	//Init controllers with cache service
 	authController := controllers.NewAuthController(fileClient, userClient)
-	userController := controllers.NewUserController(fileClient, userClient)
-	chatController := controllers.NewChatController(chatClient, fileClient)
+	userController := controllers.NewUserController(fileClient, userClient, cacheService)
+	chatController := controllers.NewChatController(chatClient, fileClient, cacheService)
 	taskController := controllers.NewTaskController(taskClient, fileClient)
 
-	//Init handlers
-	authHandler := handlers.NewAuthHandler(authController)
+	//Init handlers with session service
+	authHandler := handlers.NewAuthHandler(authController, sessionService)
 	userHandler := handlers.NewUserHandler(userController)
 	chatHandler := handlers.NewChatHandler(chatController)
 	taskHandler := handlers.NewTaskHandler(taskController)
 
 	r := gin.Default()
 
-	routes.RegisterAuthRoutes(r, authHandler)
-	routes.RegisterUserRoutes(r, userHandler, publicKey)
-	routes.RegisterChatRoutes(r, chatHandler, publicKey)
-	routes.RegisterTaskRoutes(r, taskHandler, publicKey)
+	routes.RegisterAuthRoutes(r, authHandler, publicKey, sessionService)
+	routes.RegisterUserRoutes(r, userHandler, publicKey, sessionService)
+	routes.RegisterChatRoutes(r, chatHandler, publicKey, sessionService)
+	routes.RegisterTaskRoutes(r, taskHandler, publicKey, sessionService)
 
 	_ = r.Run(":" + strconv.Itoa(cfg.App.Port))
 }
