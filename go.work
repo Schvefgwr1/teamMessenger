@@ -7,4 +7,5 @@ use (
 	./userService
 	./chatService
 	./apiService
+	./notificationService
 )

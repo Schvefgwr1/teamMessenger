@@ -1,0 +1,17 @@
+app:
+  name: "notification-service"
+  port: 8085
+kafka:
+  brokers:
+    - "localhost:9092"
+  group_id: "notification-service"
+  topics:
+    notifications: "notifications"
+email:
+  smtp_host: "smtp.yandex.ru"
+  smtp_port: 587
+  username: "schetovvsevolod@yandex.ru"  # Заполнить через переменные окружения
+  password: "lanfvlespcydxdpg"  # Заполнить через переменные окружения
+  from_email: "schetovvsevolod@yandex.ru"
+  from_name: "TeamMessenger"
+  template_path: "./templates" 

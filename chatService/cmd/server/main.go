@@ -9,6 +9,7 @@ import (
 	"chatService/internal/services"
 	"common/config"
 	"common/db"
+	"common/kafka"
 	"github.com/gin-gonic/gin"
 	"log"
 	"strconv"
@@ -56,6 +57,18 @@ func main() {
 		return
 	}
 
+	// Init Kafka notification service
+	kafkaConfig := &kafka.ProducerConfig{
+		Brokers: kafka.GetKafkaBrokers(),
+		Topic:   kafka.GetNotificationsTopic(),
+	}
+
+	notificationService, err := services.NewNotificationService(kafkaConfig)
+	if err != nil {
+		log.Printf("Warning: Failed to initialize notification service: %v", err)
+		notificationService = nil
+	}
+
 	// Init repositories
 	messageRepository := repositories.NewMessageRepository(db)
 	chatRoleRepository := repositories.NewChatRoleRepository(db)
@@ -64,7 +77,7 @@ func main() {
 
 	// Init controllers
 	messageController := controllers.NewMessageController(messageRepository, chatRepository, chatUserRepository)
-	chatController := controllers.NewChatController(chatRepository, chatUserRepository, chatRoleRepository)
+	chatController := controllers.NewChatController(chatRepository, chatUserRepository, chatRoleRepository, notificationService)
 
 	// Init handlers
 	messageHandler := handlers.NewMessageHandler(messageController)
@@ -81,6 +94,15 @@ func main() {
 	//r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	routes.RegisterChatRoutes(r, chatHandler, messageHandler, permissionsMiddleware)
+
+	// Graceful shutdown для Kafka producer
+	defer func() {
+		if notificationService != nil {
+			if err := notificationService.Close(); err != nil {
+				log.Printf("Error closing notification service: %v", err)
+			}
+		}
+	}()
 
 	_ = r.Run(":" + strconv.Itoa(cfg.App.Port))
 }

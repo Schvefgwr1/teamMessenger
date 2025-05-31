@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Новая задача - TeamMessenger</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+        }
+        .container {
+            max-width: 600px;
+            margin: 20px auto;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 28px;
+            font-weight: 300;
+        }
+        .header .icon {
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
+        .content {
+            padding: 30px;
+        }
+        .task-info {
+            background: #f8f9fa;
+            border-left: 4px solid #007bff;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 0 5px 5px 0;
+        }
+        .task-title {
+            font-size: 24px;
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 15px;
+        }
+        .info-row {
+            display: flex;
+            margin: 10px 0;
+            align-items: center;
+        }
+        .info-label {
+            font-weight: bold;
+            color: #555;
+            min-width: 120px;
+            display: inline-block;
+        }
+        .info-value {
+            color: #333;
+        }
+        .priority {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        .priority-high {
+            background: #ff6b6b;
+            color: white;
+        }
+        .priority-medium {
+            background: #ffa726;
+            color: white;
+        }
+        .priority-low {
+            background: #66bb6a;
+            color: white;
+        }
+        .due-date {
+            color: #e74c3c;
+            font-weight: bold;
+        }
+        .action-button {
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px 30px;
+            text-decoration: none;
+            border-radius: 25px;
+            margin: 20px 0;
+            font-weight: bold;
+            text-align: center;
+        }
+        .footer {
+            background: #ecf0f1;
+            color: #7f8c8d;
+            text-align: center;
+            padding: 20px;
+            font-size: 14px;
+        }
+        .footer a {
+            color: #3498db;
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="icon">📋</div>
+            <h1>Новая задача</h1>
+            <p>Вам назначена новая задача в TeamMessenger</p>
+        </div>
+        
+        <div class="content">
+            <div class="task-info">
+                <div class="task-title">{{.TaskTitle}}</div>
+                
+                <div class="info-row">
+                    <span class="info-label">Создатель:</span>
+                    <span class="info-value">{{.CreatorName}}</span>
+                </div>
+                
+                <div class="info-row">
+                    <span class="info-label">ID задачи:</span>
+                    <span class="info-value">#{{.TaskID}}</span>
+                </div>
+                
+                <div class="info-row">
+                    <span class="info-label">Создано:</span>
+                    <span class="info-value">{{.CreatedAt.Format "02.01.2006 15:04"}}</span>
+                </div>
+            </div>
+            
+            <p>Перейдите в приложение TeamMessenger, чтобы просмотреть детали задачи и начать работу.</p>
+            
+            <div style="text-align: center;">
+                <a href="#" class="action-button">Открыть задачу</a>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p>Это автоматическое уведомление от <strong>TeamMessenger</strong></p>
+            <p>Если у вас есть вопросы, обратитесь в <a href="mailto:support@teammessenger.com">службу поддержки</a></p>
+        </div>
+    </div>
+</body>
+</html> 

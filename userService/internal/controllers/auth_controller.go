@@ -4,19 +4,30 @@ import (
 	au "common/contracts/api-user"
 	httpClients "common/http_clients"
 	"github.com/google/uuid"
+	"log"
 	"userService/internal/custom_errors"
 	"userService/internal/models"
 	"userService/internal/repositories"
+	"userService/internal/services"
 	"userService/internal/utils"
 )
 
 type AuthController struct {
-	userRepo *repositories.UserRepository
-	roleRepo *repositories.RoleRepository
+	userRepo            *repositories.UserRepository
+	roleRepo            *repositories.RoleRepository
+	notificationService *services.NotificationService
 }
 
-func NewAuthController(userRepo *repositories.UserRepository, roleRepo *repositories.RoleRepository) *AuthController {
-	return &AuthController{userRepo: userRepo, roleRepo: roleRepo}
+func NewAuthController(
+	userRepo *repositories.UserRepository,
+	roleRepo *repositories.RoleRepository,
+	notificationService *services.NotificationService,
+) *AuthController {
+	return &AuthController{
+		userRepo:            userRepo,
+		roleRepo:            roleRepo,
+		notificationService: notificationService,
+	}
 }
 
 func (c *AuthController) Register(req *au.RegisterUserRequest) (*models.User, error) {
@@ -72,7 +83,7 @@ func (c *AuthController) Register(req *au.RegisterUserRequest) (*models.User, er
 	return user, nil
 }
 
-func (c *AuthController) Login(req *au.Login) (string, uuid.UUID, error) {
+func (c *AuthController) Login(req *au.Login, ipAddress, userAgent string) (string, uuid.UUID, error) {
 	user, err := c.userRepo.GetUserByUsername(req.Login)
 	if err != nil {
 		return "", uuid.Nil, custom_errors.ErrInvalidCredentials
@@ -90,6 +101,20 @@ func (c *AuthController) Login(req *au.Login) (string, uuid.UUID, error) {
 	token, err := utils.GenerateJWT(user.ID, permNames)
 	if err != nil {
 		return "", uuid.Nil, custom_errors.ErrTokenGeneration
+	}
+
+	// Отправляем уведомление о входе в систему
+	if c.notificationService != nil && user.Email != "" {
+		if err := c.notificationService.SendLoginNotification(
+			user.ID,
+			user.Username,
+			user.Email,
+			ipAddress,
+			userAgent,
+		); err != nil {
+			// Логируем ошибку, но не прерываем процесс входа
+			log.Printf("Failed to send login notification for user %s: %v", user.Username, err)
+		}
 	}
 
 	return token, user.ID, nil

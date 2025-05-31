@@ -85,7 +85,13 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		return
 	}
 
-	token, userID, err := h.authController.Login(&req)
+	// Получаем IP адрес клиента
+	ipAddress := c.ClientIP()
+
+	// Получаем User-Agent
+	userAgent := c.GetHeader("User-Agent")
+
+	token, userID, err := h.authController.Login(&req, ipAddress, userAgent)
 	if err != nil {
 		switch {
 		case errors.Is(err, custom_errors.ErrInvalidCredentials):

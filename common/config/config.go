@@ -5,6 +5,11 @@ import (
 	"os"
 )
 
+type AppConfig struct {
+	Port int    `yaml:"port"`
+	Name string `yaml:"name"`
+}
+
 type MinIO struct {
 	Host      string `yaml:"host"`
 	AccessKey string `yaml:"access_key"`
@@ -27,11 +32,9 @@ type Config struct {
 		Name     string `yaml:"name"`
 		Port     int    `yaml:"port"`
 	} `yaml:"db"`
-	MinIO MinIO `yaml:"minio"`
-	Redis Redis `yaml:"redis"`
-	App   struct {
-		Port int `yaml:"port"`
-	} `yaml:"app"`
+	MinIO MinIO     `yaml:"minio"`
+	Redis Redis     `yaml:"redis"`
+	App   AppConfig `yaml:"app"`
 }
 
 func LoadConfig(filename string) (*Config, error) {

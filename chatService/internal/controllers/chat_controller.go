@@ -5,22 +5,31 @@ import (
 	"chatService/internal/handlers/dto"
 	"chatService/internal/models"
 	"chatService/internal/repositories"
+	"chatService/internal/services"
 	httpClients "common/http_clients"
 	"github.com/google/uuid"
+	"log"
 )
 
 type ChatController struct {
-	ChatRepo     repositories.ChatRepository
-	ChatUserRepo repositories.ChatUserRepository
-	ChatRoleRepo repositories.ChatRoleRepository
+	ChatRepo            repositories.ChatRepository
+	ChatUserRepo        repositories.ChatUserRepository
+	ChatRoleRepo        repositories.ChatRoleRepository
+	NotificationService *services.NotificationService
 }
 
 func NewChatController(
 	chatRepo repositories.ChatRepository,
 	chatUserRepo repositories.ChatUserRepository,
 	chatRoleRepo repositories.ChatRoleRepository,
+	notificationService *services.NotificationService,
 ) *ChatController {
-	return &ChatController{chatRepo, chatUserRepo, chatRoleRepo}
+	return &ChatController{
+		ChatRepo:            chatRepo,
+		ChatUserRepo:        chatUserRepo,
+		ChatRoleRepo:        chatRoleRepo,
+		NotificationService: notificationService,
+	}
 }
 
 func (c *ChatController) GetUserChats(userID uuid.UUID) (*[]dto.ChatResponse, error) {
@@ -101,6 +110,18 @@ func (c *ChatController) CreateChat(dto *dto.CreateChatDTO) (*uuid.UUID, error) 
 	if err != nil {
 		return nil, custom_errors.NewDatabaseError(err.Error())
 	}
+
+	// Получаем имя создателя для уведомлений
+	creatorName := "Unknown user"
+	if userOwnerClientResponse.User.Username != "" {
+		creatorName = userOwnerClientResponse.User.Username
+	}
+
+	// Собираем список всех пользователей для уведомлений
+	var allUsers []uuid.UUID
+	allUsers = append(allUsers, dto.UserIDs...) // Добавляем приглашенных пользователей
+
+	// Добавляем пользователей в чат и отправляем уведомления
 	for _, userID := range dto.UserIDs {
 		userClientResponse, err := httpClients.GetUserByID(&userID)
 		if err != nil {
@@ -118,7 +139,28 @@ func (c *ChatController) CreateChat(dto *dto.CreateChatDTO) (*uuid.UUID, error) 
 		if err != nil {
 			return nil, custom_errors.NewDatabaseError(err.Error())
 		}
+
+		// Отправляем уведомление о новом чате
+		if c.NotificationService != nil && userClientResponse.User.Email != "" {
+			description := ""
+			if newChat.Description != nil {
+				description = *newChat.Description
+			}
+
+			if err := c.NotificationService.SendChatCreatedNotification(
+				newChat.ID,
+				newChat.Name,
+				creatorName,
+				newChat.IsGroup,
+				description,
+				userClientResponse.User.Email,
+			); err != nil {
+				// Логируем ошибку, но не прерываем процесс создания чата
+				log.Printf("Failed to send chat notification to user %s: %v", userClientResponse.User.Email, err)
+			}
+		}
 	}
+
 	return &newChat.ID, nil
 }
 
@@ -171,6 +213,28 @@ func (c *ChatController) UpdateChat(chatID uuid.UUID, updateChatDTO *dto.UpdateC
 		if err := c.ChatUserRepo.AddUserToChat(newChatUser); err != nil {
 			return nil, custom_errors.NewDatabaseError(err.Error())
 		}
+
+		// Отправляем уведомление о добавлении в существующий чат
+		if c.NotificationService != nil && userResp.User.Email != "" {
+			// Получаем информацию о том, кто добавил пользователя (нужно передать в параметрах метода)
+			description := ""
+			if chat.Description != nil {
+				description = *chat.Description
+			}
+
+			if err := c.NotificationService.SendChatCreatedNotification(
+				chat.ID,
+				chat.Name,
+				"Администратор",
+				chat.IsGroup,
+				description,
+				userResp.User.Email,
+			); err != nil {
+				// Логируем ошибку, но не прерываем процесс
+				log.Printf("Failed to send chat notification to user %s: %v", userResp.User.Email, err)
+			}
+		}
+
 		updateUsers = append(updateUsers, dto.UpdateUser{UserID: newChatUser.UserID, State: "created"})
 	}
 
@@ -224,5 +288,4 @@ func (c *ChatController) BanUser(chatID, userID uuid.UUID) error {
 		return custom_errors.ErrInternalServerError
 	}
 	return c.ChatUserRepo.ChangeUserRole(chatID, userID, bannedRole.ID)
-
 }

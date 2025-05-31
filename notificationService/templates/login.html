@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Вход в аккаунт - TeamMessenger</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+        }
+        .container {
+            max-width: 600px;
+            margin: 20px auto;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 28px;
+            font-weight: 300;
+        }
+        .header .icon {
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
+        .content {
+            padding: 30px;
+        }
+        .login-info {
+            background: #f8f9fa;
+            border-left: 4px solid #17a2b8;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 0 5px 5px 0;
+        }
+        .username {
+            font-size: 24px;
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 15px;
+        }
+        .info-row {
+            display: flex;
+            margin: 10px 0;
+            align-items: center;
+        }
+        .info-label {
+            font-weight: bold;
+            color: #555;
+            min-width: 120px;
+            display: inline-block;
+        }
+        .info-value {
+            color: #333;
+        }
+        .login-time {
+            color: #28a745;
+            font-weight: bold;
+        }
+        .ip-address {
+            font-family: 'Courier New', monospace;
+            background: #e9ecef;
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+        .security-alert {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        .security-alert h4 {
+            margin: 0 0 10px 0;
+            color: #856404;
+        }
+        .action-buttons {
+            text-align: center;
+            margin: 20px 0;
+        }
+        .action-button {
+            display: inline-block;
+            color: white;
+            padding: 12px 25px;
+            text-decoration: none;
+            border-radius: 25px;
+            margin: 5px 10px;
+            font-weight: bold;
+        }
+        .secure-button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .report-button {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+        }
+        .device-info {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            font-size: 14px;
+        }
+        .footer {
+            background: #ecf0f1;
+            color: #7f8c8d;
+            text-align: center;
+            padding: 20px;
+            font-size: 14px;
+        }
+        .footer a {
+            color: #3498db;
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="icon">🔐</div>
+            <h1>Вход в аккаунт</h1>
+            <p>Зафиксирован вход в ваш аккаунт TeamMessenger</p>
+        </div>
+        
+        <div class="content">
+            <div class="login-info">
+                <div class="username">Привет, {{.Username}}!</div>
+                
+                <div class="info-row">
+                    <span class="info-label">Время входа:</span>
+                    <span class="info-value login-time">{{.LoginTime.Format "02.01.2006 15:04:05"}}</span>
+                </div>
+                
+                <div class="info-row">
+                    <span class="info-label">IP-адрес:</span>
+                    <span class="info-value">
+                        <span class="ip-address">{{.IPAddress}}</span>
+                    </span>
+                </div>
+                
+                {{if .UserAgent}}
+                <div class="device-info">
+                    <strong>Информация об устройстве:</strong><br>
+                    <span style="font-family: monospace; font-size: 12px;">{{.UserAgent}}</span>
+                </div>
+                {{end}}
+            </div>
+            
+            <div style="text-align: center; margin: 20px 0;">
+                <p style="font-size: 18px; color: #28a745;">
+                    ✅ <strong>Успешный вход в систему</strong>
+                </p>
+                <p>Если это были вы, никаких действий не требуется.</p>
+            </div>
+            
+            <div class="security-alert">
+                <h4>🛡️ Безопасность вашего аккаунта</h4>
+                <p>Если вы не совершали этот вход, немедленно:</p>
+                <ul>
+                    <li>Измените пароль в настройках аккаунта</li>
+                    <li>Проверьте активные сессии</li>
+                    <li>Обратитесь в службу поддержки</li>
+                </ul>
+            </div>
+            
+            <div class="action-buttons">
+                <a href="#" class="action-button secure-button">Управление безопасностью</a>
+                <a href="#" class="action-button report-button">Сообщить о проблеме</a>
+            </div>
+            
+            <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 20px 0; text-align: center; font-size: 14px; color: #6c757d;">
+                <p><strong>Советы по безопасности:</strong></p>
+                <p>• Используйте уникальные пароли для разных сервисов<br>
+                • Включите двухфакторную аутентификацию<br>
+                • Регулярно проверяйте активность в аккаунте</p>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p>Это автоматическое уведомление о безопасности от <strong>TeamMessenger</strong></p>
+            <p>Если у вас есть вопросы, обратитесь в <a href="mailto:security@teammessenger.com">службу безопасности</a></p>
+        </div>
+    </div>
+</body>
+</html> 

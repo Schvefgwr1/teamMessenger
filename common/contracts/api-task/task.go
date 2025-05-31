@@ -21,12 +21,12 @@ type TaskResponse struct {
 	ID          int        `json:"id"`
 	Title       string     `json:"title"`
 	Description string     `json:"description"`
-	CreatorID   uuid.UUID  `json:"creator_id"`
+	CreatorID   uuid.UUID  `json:"creatorID"`
 	ExecutorID  *uuid.UUID `json:"executor_id,omitempty"`
 	ChatID      *uuid.UUID `json:"chat_id,omitempty"`
 	Status      TaskStatus `json:"status"`
 	Files       []TaskFile `json:"files,omitempty"`
-	CreatedAt   time.Time  `json:"created_at"`
+	CreatedAt   time.Time  `json:"createdAt"`
 }
 
 type TaskFile struct {

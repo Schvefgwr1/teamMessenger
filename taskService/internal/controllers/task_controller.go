@@ -4,28 +4,33 @@ import (
 	fc "common/contracts/file-contracts"
 	"common/http_clients"
 	"github.com/google/uuid"
+	"log"
 	"strconv"
 	customErrors "taskService/internal/custom_errors"
 	"taskService/internal/handlers/dto"
 	"taskService/internal/models"
 	"taskService/internal/repositories"
+	"taskService/internal/services"
 )
 
 type TaskController struct {
-	TaskRepo       repositories.TaskRepository
-	TaskStatusRepo repositories.TaskStatusRepository
-	TaskFileRepo   repositories.TaskFileRepository
+	TaskRepo            repositories.TaskRepository
+	TaskStatusRepo      repositories.TaskStatusRepository
+	TaskFileRepo        repositories.TaskFileRepository
+	NotificationService *services.NotificationService
 }
 
 func NewTaskController(
 	taskRepo repositories.TaskRepository,
 	taskStatusRepo repositories.TaskStatusRepository,
 	taskFileRepo repositories.TaskFileRepository,
+	notificationService *services.NotificationService,
 ) *TaskController {
 	return &TaskController{
-		TaskRepo:       taskRepo,
-		TaskStatusRepo: taskStatusRepo,
-		TaskFileRepo:   taskFileRepo,
+		TaskRepo:            taskRepo,
+		TaskStatusRepo:      taskStatusRepo,
+		TaskFileRepo:        taskFileRepo,
+		NotificationService: notificationService,
 	}
 }
 
@@ -35,13 +40,21 @@ func (c *TaskController) Create(taskDTO *dto.CreateTaskDTO) (*models.Task, error
 		return nil, customErrors.NewTaskStatusNotFoundError("created")
 	}
 
-	if _, errUser := http_clients.GetUserByID(&taskDTO.CreatorID); errUser != nil {
+	// Получаем информацию о создателе
+	creator, errUser := http_clients.GetUserByID(&taskDTO.CreatorID)
+	if errUser != nil {
 		return nil, customErrors.NewGetUserHTTPError(taskDTO.CreatorID.String(), err.Error())
 	}
 
+	var executorEmail string
 	if taskDTO.ExecutorID != uuid.Nil {
-		if _, errTask := http_clients.GetUserByID(&taskDTO.ExecutorID); errTask != nil {
+		executor, errTask := http_clients.GetUserByID(&taskDTO.ExecutorID)
+		if errTask != nil {
 			return nil, customErrors.NewGetUserHTTPError(taskDTO.ExecutorID.String(), err.Error())
+		}
+
+		if executor.User.Email != "" {
+			executorEmail = executor.User.Email
 		}
 	}
 
@@ -83,6 +96,25 @@ func (c *TaskController) Create(taskDTO *dto.CreateTaskDTO) (*models.Task, error
 			return nil, err
 		} else {
 			task.Files = taskFiles
+		}
+	}
+
+	// Отправляем уведомление о новой задаче, если есть исполнитель
+	if taskDTO.ExecutorID != uuid.Nil && executorEmail != "" {
+		creatorName := "Unknown user"
+		if creator.User.Username != "" {
+			creatorName = creator.User.Username
+		}
+
+		if err := c.NotificationService.SendTaskCreatedNotification(
+			task.ID,
+			task.Title,
+			creatorName,
+			taskDTO.ExecutorID,
+			executorEmail,
+		); err != nil {
+			// Логируем ошибку, но не прерываем процесс создания задачи
+			log.Printf("Failed to send task notification: %v", err)
 		}
 	}
 

@@ -3,6 +3,7 @@ package main
 import (
 	"common/config"
 	"common/db"
+	"common/kafka"
 	"github.com/gin-gonic/gin"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
@@ -13,6 +14,7 @@ import (
 	"userService/internal/handlers"
 	"userService/internal/repositories"
 	"userService/internal/routes"
+	"userService/internal/services"
 )
 
 // @title User Service API
@@ -57,6 +59,18 @@ func main() {
 		return
 	}
 
+	// Init Kafka notification service
+	kafkaConfig := &kafka.ProducerConfig{
+		Brokers: kafka.GetKafkaBrokers(),
+		Topic:   kafka.GetNotificationsTopic(),
+	}
+
+	notificationService, err := services.NewNotificationService(kafkaConfig)
+	if err != nil {
+		log.Printf("Warning: Failed to initialize notification service: %v", err)
+		notificationService = nil
+	}
+
 	// Init repositories
 	permissionRepository := repositories.NewPermissionRepository(db)
 	roleRepository := repositories.NewRoleRepository(db)
@@ -66,7 +80,7 @@ func main() {
 	permissionController := controllers.NewPermissionController(permissionRepository)
 	roleController := controllers.NewRoleController(roleRepository, permissionRepository)
 	userController := controllers.NewUserController(userRepository, roleRepository)
-	authController := controllers.NewAuthController(userRepository, roleRepository)
+	authController := controllers.NewAuthController(userRepository, roleRepository, notificationService)
 
 	// Init handlers
 	permissionHandler := handlers.NewPermissionHandler(permissionController)
@@ -80,6 +94,15 @@ func main() {
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	routes.RegisterRoutes(r, authHandler, userHandler, roleHandler, permissionHandler, keyHandler)
+
+	// Graceful shutdown для Kafka producer
+	defer func() {
+		if notificationService != nil {
+			if err := notificationService.Close(); err != nil {
+				log.Printf("Error closing notification service: %v", err)
+			}
+		}
+	}()
 
 	_ = r.Run(":" + strconv.Itoa(cfg.App.Port))
 }

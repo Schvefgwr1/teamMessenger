@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{if .IsGroup}}Новая группа{{else}}Новый чат{{end}} - TeamMessenger</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+        }
+        .container {
+            max-width: 600px;
+            margin: 20px auto;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 28px;
+            font-weight: 300;
+        }
+        .header .icon {
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
+        .content {
+            padding: 30px;
+        }
+        .chat-info {
+            background: #f8f9fa;
+            border-left: 4px solid #28a745;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 0 5px 5px 0;
+        }
+        .chat-name {
+            font-size: 24px;
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 15px;
+        }
+        .info-row {
+            display: flex;
+            margin: 10px 0;
+            align-items: center;
+        }
+        .info-label {
+            font-weight: bold;
+            color: #555;
+            min-width: 120px;
+            display: inline-block;
+        }
+        .info-value {
+            color: #333;
+        }
+        .chat-type {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        .chat-type-group {
+            background: #17a2b8;
+            color: white;
+        }
+        .chat-type-private {
+            background: #6f42c1;
+            color: white;
+        }
+        .description {
+            background: #e9ecef;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            font-style: italic;
+            color: #495057;
+        }
+        .action-button {
+            display: inline-block;
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            color: white;
+            padding: 12px 30px;
+            text-decoration: none;
+            border-radius: 25px;
+            margin: 20px 0;
+            font-weight: bold;
+            text-align: center;
+        }
+        .footer {
+            background: #ecf0f1;
+            color: #7f8c8d;
+            text-align: center;
+            padding: 20px;
+            font-size: 14px;
+        }
+        .footer a {
+            color: #3498db;
+            text-decoration: none;
+        }
+        .welcome-message {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="icon">{{if .IsGroup}}👥{{else}}💬{{end}}</div>
+            <h1>{{if .IsGroup}}Новая группа{{else}}Новый чат{{end}}</h1>
+            <p>{{if .IsGroup}}Вы добавлены в новую группу{{else}}Начат новый чат{{end}} в TeamMessenger</p>
+        </div>
+        
+        <div class="content">
+            <div class="chat-info">
+                <div class="chat-name">{{.ChatName}}</div>
+                
+                <div class="info-row">
+                    <span class="info-label">{{if .IsGroup}}Создатель группы:{{else}}Собеседник:{{end}}</span>
+                    <span class="info-value">{{.CreatorName}}</span>
+                </div>
+                
+                <div class="info-row">
+                    <span class="info-label">Тип:</span>
+                    <span class="info-value">
+                        <span class="chat-type {{if .IsGroup}}chat-type-group{{else}}chat-type-private{{end}}">
+                            {{if .IsGroup}}Групповой чат{{else}}Личный чат{{end}}
+                        </span>
+                    </span>
+                </div>
+                
+                <div class="info-row">
+                    <span class="info-label">Создан:</span>
+                    <span class="info-value">{{.CreatedAt.Format "02.01.2006 15:04"}}</span>
+                </div>
+                
+                {{if .Description}}
+                <div class="description">
+                    <strong>Описание:</strong><br>
+                    {{.Description}}
+                </div>
+                {{end}}
+            </div>
+            
+            <div class="welcome-message">
+                {{if .IsGroup}}
+                    <h3>🎉 Добро пожаловать в группу!</h3>
+                    <p>Теперь вы можете общаться со всеми участниками группы "{{.ChatName}}" и делиться важной информацией.</p>
+                {{else}}
+                    <h3>💫 Новое общение началось!</h3>
+                    <p>{{.CreatorName}} начал с вами чат. Не упустите возможность для интересного общения!</p>
+                {{end}}
+            </div>
+            
+            <p>Откройте приложение TeamMessenger, чтобы начать общение и не пропустить важные сообщения.</p>
+            
+            <div style="text-align: center;">
+                <a href="#" class="action-button">Открыть чат</a>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p>Это автоматическое уведомление от <strong>TeamMessenger</strong></p>
+            <p>Если у вас есть вопросы, обратитесь в <a href="mailto:support@teammessenger.com">службу поддержки</a></p>
+        </div>
+    </div>
+</body>
+</html> 
