@@ -6,5 +6,6 @@ redis:
 app:
   port: 8084
 kafka:
-  consumer:
-    group_id: "api_service_key_updates"  # Уникальный ID группы для apiService
+  brokers:
+    - "localhost:9092"
+  group_id: "api_service_key_updates"

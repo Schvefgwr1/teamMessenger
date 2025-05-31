@@ -29,12 +29,25 @@ type KeysConfig struct {
 	RotationInterval string `yaml:"rotation_interval"`
 }
 
-type KafkaConsumerConfig struct {
-	GroupID string `yaml:"group_id"`
+type KafkaConfig struct {
+	Brokers []string `yaml:"brokers"`
+	GroupID string   `yaml:"group_id"`
+	Topics  Topics   `yaml:"topics"`
 }
 
-type KafkaConfig struct {
-	Consumer KafkaConsumerConfig `yaml:"consumer"`
+type Topics struct {
+	Notifications string `yaml:"notifications"`
+	Keys          string `yaml:"keys"`
+}
+
+type EmailConfig struct {
+	SMTPHost     string `yaml:"smtp_host"`
+	SMTPPort     int    `yaml:"smtp_port"`
+	Username     string `yaml:"username"`
+	Password     string `yaml:"password"`
+	FromEmail    string `yaml:"from_email"`
+	FromName     string `yaml:"from_name"`
+	TemplatePath string `yaml:"template_path"`
 }
 
 type Config struct {
@@ -50,6 +63,7 @@ type Config struct {
 	App   AppConfig   `yaml:"app"`
 	Keys  KeysConfig  `yaml:"keys"`
 	Kafka KafkaConfig `yaml:"kafka"`
+	Email EmailConfig `yaml:"email"`
 }
 
 // GetKeyRotationInterval возвращает интервал обновления ключей как time.Duration

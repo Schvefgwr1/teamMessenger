@@ -11,6 +11,7 @@ import (
 	"common/db"
 	"common/kafka"
 	"github.com/gin-gonic/gin"
+	"github.com/joho/godotenv"
 	"log"
 	"strconv"
 )
@@ -43,12 +44,21 @@ import (
 // @tag.description Операции с ролями пользователей
 
 func main() {
+	// Загружаем переменные окружения из .env файла (если существует)
+	if err := godotenv.Load(); err != nil {
+		log.Printf("No .env file found or error loading .env file: %v", err)
+	}
+
 	//Upload config
 	cfg, err := config.LoadConfig("config/config.yaml")
 	if err != nil {
 		log.Fatal("Can't load config " + err.Error())
 		return
 	}
+
+	// Apply environment variable overrides
+	config.ApplyDatabaseEnvOverrides(cfg)
+	config.ApplyAppEnvOverrides(cfg)
 
 	//Init DB
 	db, err := db.InitDB(cfg)

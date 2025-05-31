@@ -2,10 +2,10 @@ package services
 
 import (
 	"bytes"
+	"common/config"
 	"fmt"
 	"gopkg.in/gomail.v2"
 	"html/template"
-	"notificationService/internal/config"
 	"path/filepath"
 
 	"common/models"
@@ -18,6 +18,17 @@ type EmailService struct {
 }
 
 func NewEmailService(cfg *config.EmailConfig) (*EmailService, error) {
+	// Валидация конфигурации
+	if cfg.SMTPHost == "" {
+		return nil, fmt.Errorf("SMTP host is required")
+	}
+	if cfg.Username == "" {
+		return nil, fmt.Errorf("SMTP username is required - set SMTP_USERNAME environment variable")
+	}
+	if cfg.Password == "" {
+		return nil, fmt.Errorf("SMTP password is required - set SMTP_PASSWORD environment variable")
+	}
+
 	dialer := gomail.NewDialer(cfg.SMTPHost, cfg.SMTPPort, cfg.Username, cfg.Password)
 
 	service := &EmailService{

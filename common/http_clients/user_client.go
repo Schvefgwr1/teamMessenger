@@ -1,6 +1,7 @@
 package http_clients
 
 import (
+	"common/config"
 	cuc "common/contracts/user-contracts"
 	"encoding/json"
 	"errors"
@@ -11,7 +12,8 @@ import (
 
 // GetUserByID делает HTTP-запрос к файловому сервису и возвращает структуру File
 func GetUserByID(userID *uuid.UUID) (*cuc.Response, error) {
-	url := fmt.Sprintf("http://localhost:8082/api/v1/users/%s", (*userID).String())
+	baseURL := config.GetEnvOrDefault("USER_SERVICE_URL", "http://localhost:8082")
+	url := fmt.Sprintf("%s/api/v1/users/%s", baseURL, (*userID).String())
 
 	resp, err := http.Get(url)
 	if err != nil {

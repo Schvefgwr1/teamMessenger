@@ -1,6 +1,7 @@
 package http_clients
 
 import (
+	"common/config"
 	cc "common/contracts/chat-contracts"
 	"encoding/json"
 	"errors"
@@ -10,7 +11,8 @@ import (
 
 // GetChatByID делает HTTP-запрос к чат-сервису и возвращает структуру Chat
 func GetChatByID(chatID string) (*cc.Chat, error) {
-	url := fmt.Sprintf("http://localhost:8083/api/v1/chats/%s", chatID)
+	baseURL := config.GetEnvOrDefault("CHAT_SERVICE_URL", "http://localhost:8083")
+	url := fmt.Sprintf("%s/api/v1/chats/%s", baseURL, chatID)
 
 	resp, err := http.Get(url)
 	if err != nil {

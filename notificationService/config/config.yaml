@@ -7,11 +7,12 @@ kafka:
   group_id: "notification-service"
   topics:
     notifications: "notifications"
+    keys: "key_updates"
 email:
   smtp_host: "smtp.yandex.ru"
   smtp_port: 587
-  username: "schetovvsevolod@yandex.ru"  # Заполнить через переменные окружения
-  password: "lanfvlespcydxdpg"  # Заполнить через переменные окружения
-  from_email: "schetovvsevolod@yandex.ru"
+  username: ""
+  password: ""
+  from_email: "noreply@teammessenger.com"
   from_name: "TeamMessenger"
   template_path: "./templates" 

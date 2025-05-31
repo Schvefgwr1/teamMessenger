@@ -11,6 +11,7 @@ import (
 	commonRedis "common/redis"
 	"context"
 	"github.com/gin-gonic/gin"
+	"github.com/joho/godotenv"
 	"log"
 	"os"
 	"os/signal"
@@ -33,13 +34,24 @@ import (
 // @schemes http
 // @externalDocs.description OpenAPI
 // @externalDocs.url https://swagger.io/resources/open-api/
+
 func main() {
+	// Загружаем переменные окружения из .env файла (если существует)
+	if err := godotenv.Load(); err != nil {
+		log.Printf("No .env file found or error loading .env file: %v", err)
+	}
+
 	//Upload config
 	cfg, err := common.LoadConfig("config/config.yaml")
 	if err != nil {
 		log.Fatal("Can't load config " + err.Error())
 		return
 	}
+
+	// Apply environment variable overrides
+	common.ApplyRedisEnvOverrides(cfg)
+	common.ApplyAppEnvOverrides(cfg)
+	common.ApplyKafkaEnvOverrides(cfg)
 
 	redisClient := commonRedis.NewRedisClient(&cfg.Redis)
 
@@ -48,10 +60,10 @@ func main() {
 	cacheService := services.NewCacheService(redisClient)
 
 	// Init clients
-	fileClient := http_clients.NewFileClient("http://localhost:8080")
-	userClient := http_clients.NewUserClient("http://localhost:8082")
-	chatClient := http_clients.NewChatClient("http://localhost:8083")
-	taskClient := http_clients.NewTaskClient("http://localhost:8081")
+	fileClient := http_clients.NewFileClient(common.GetEnvOrDefault("FILE_SERVICE_URL", "http://localhost:8080"))
+	userClient := http_clients.NewUserClient(common.GetEnvOrDefault("USER_SERVICE_URL", "http://localhost:8082"))
+	chatClient := http_clients.NewChatClient(common.GetEnvOrDefault("CHAT_SERVICE_URL", "http://localhost:8083"))
+	taskClient := http_clients.NewTaskClient(common.GetEnvOrDefault("TASK_SERVICE_URL", "http://localhost:8081"))
 
 	// Init PublicKeyManager
 	publicKeyManager := services.NewPublicKeyManager()
@@ -67,7 +79,7 @@ func main() {
 	keyConsumerConfig := &services.KeyUpdateConsumerConfig{
 		Brokers: kafka.GetKafkaBrokers(),
 		Topic:   kafka.GetKeyUpdatesTopic(),
-		GroupID: cfg.Kafka.Consumer.GroupID,
+		GroupID: cfg.Kafka.GroupID,
 	}
 
 	keyUpdateConsumer, err := services.NewKeyUpdateConsumer(

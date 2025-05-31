@@ -1,10 +1,11 @@
 package main
 
 import (
+	"common/config"
+	"common/kafka"
 	"context"
-	"gopkg.in/yaml.v3"
+	"github.com/joho/godotenv"
 	"log"
-	"notificationService/internal/config"
 	"notificationService/internal/services"
 	"os"
 	"os/signal"
@@ -13,11 +14,25 @@ import (
 )
 
 func main() {
+	// Загружаем переменные окружения из .env файла (если существует)
+	if err := godotenv.Load(); err != nil {
+		log.Printf("No .env file found or error loading .env file: %v", err)
+	}
+
 	// Загружаем конфигурацию
-	cfg, err := loadConfig()
+	cfg, err := config.LoadConfig("config/config.yaml")
 	if err != nil {
 		log.Fatalf("Failed to load configuration: %v", err)
 	}
+
+	// Apply environment variable overrides
+	config.ApplyAppEnvOverrides(cfg)
+	config.ApplyKafkaEnvOverrides(cfg)
+	config.ApplyEmailEnvOverrides(cfg)
+
+	// Логируем email конфигурацию (без пароля)
+	log.Printf("Email config: Host=%s, Port=%d, Username=%s, FromEmail=%s",
+		cfg.Email.SMTPHost, cfg.Email.SMTPPort, cfg.Email.Username, cfg.Email.FromEmail)
 
 	// Инициализируем Email Service
 	emailService, err := services.NewEmailService(&cfg.Email)
@@ -26,7 +41,13 @@ func main() {
 	}
 
 	// Инициализируем Kafka Consumer
-	kafkaConsumer, err := services.NewKafkaConsumer(&cfg.Kafka, emailService)
+	notificationsConsumerConfig := &services.KeyUpdateConsumerConfig{
+		Brokers: kafka.GetKafkaBrokers(),
+		Topic:   kafka.GetNotificationsTopic(),
+		GroupID: cfg.Kafka.GroupID,
+	}
+
+	kafkaConsumer, err := services.NewKafkaConsumer(notificationsConsumerConfig, emailService)
 	if err != nil {
 		log.Fatalf("Failed to initialize kafka consumer: %v", err)
 	}
@@ -63,21 +84,4 @@ func main() {
 	}
 
 	log.Println("Notification Service stopped.")
-}
-
-func loadConfig() (*config.NotificationConfig, error) {
-	return loadConfigFromFile("config/config.yaml")
-}
-
-func loadConfigFromFile(path string) (*config.NotificationConfig, error) {
-	data, err := os.ReadFile(path)
-	if err != nil {
-		return nil, err
-	}
-	var notificationConfig config.NotificationConfig
-	if err := yaml.Unmarshal(data, &notificationConfig); err != nil {
-		return nil, err
-	}
-
-	return &notificationConfig, nil
 }

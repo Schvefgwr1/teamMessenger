@@ -5,20 +5,25 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"notificationService/internal/config"
 	"time"
 
 	"common/models"
 	"github.com/IBM/sarama"
 )
 
+type KeyUpdateConsumerConfig struct {
+	Brokers []string
+	Topic   string
+	GroupID string
+}
+
 type KafkaConsumer struct {
 	consumer     sarama.ConsumerGroup
 	emailService *EmailService
-	config       *config.KafkaConfig
+	config       *KeyUpdateConsumerConfig
 }
 
-func NewKafkaConsumer(cfg *config.KafkaConfig, emailService *EmailService) (*KafkaConsumer, error) {
+func NewKafkaConsumer(cfg *KeyUpdateConsumerConfig, emailService *EmailService) (*KafkaConsumer, error) {
 	config := sarama.NewConfig()
 	config.Consumer.Group.Rebalance.Strategy = sarama.BalanceStrategyRoundRobin
 	config.Consumer.Offsets.Initial = sarama.OffsetNewest
@@ -37,7 +42,7 @@ func NewKafkaConsumer(cfg *config.KafkaConfig, emailService *EmailService) (*Kaf
 }
 
 func (kc *KafkaConsumer) Start(ctx context.Context) error {
-	topics := []string{kc.config.Topics.Notifications}
+	topics := []string{kc.config.Topic}
 
 	// Горутина для обработки ошибок
 	go func() {

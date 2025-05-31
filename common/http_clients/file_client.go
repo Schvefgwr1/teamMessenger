@@ -1,6 +1,7 @@
 package http_clients
 
 import (
+	"common/config"
 	fc "common/contracts/file-contracts"
 	"encoding/json"
 	"errors"
@@ -10,7 +11,8 @@ import (
 
 // GetFileByID делает HTTP-запрос к файловому сервису и возвращает структуру File
 func GetFileByID(fileID int) (*fc.File, error) {
-	url := fmt.Sprintf("http://localhost:8080/api/v1/files/%d", fileID)
+	baseURL := config.GetEnvOrDefault("FILE_SERVICE_URL", "http://localhost:8080")
+	url := fmt.Sprintf("%s/api/v1/files/%d", baseURL, fileID)
 
 	resp, err := http.Get(url)
 	if err != nil {

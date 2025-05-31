@@ -10,6 +10,7 @@ import (
 	"fileService/internal/repositories"
 	"fileService/internal/routes"
 	"github.com/gin-gonic/gin"
+	"github.com/joho/godotenv"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 	"log"
@@ -38,12 +39,22 @@ import (
 // @tag.description Операции с типами файлов
 
 func main() {
+	// Загружаем переменные окружения из .env файла (если существует)
+	if err := godotenv.Load(); err != nil {
+		log.Printf("No .env file found or error loading .env file: %v", err)
+	}
+
 	//Upload config
 	cfg, err := config.LoadConfig("config/config.yaml")
 	if err != nil {
 		log.Fatal("Can't load config " + err.Error())
 		return
 	}
+
+	// Apply environment variable overrides
+	config.ApplyDatabaseEnvOverrides(cfg)
+	config.ApplyMinIOEnvOverrides(cfg)
+	config.ApplyAppEnvOverrides(cfg)
 
 	//Init DB
 	dbClient, err := db.InitDB(cfg)

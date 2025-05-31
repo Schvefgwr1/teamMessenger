@@ -6,6 +6,7 @@ import (
 	"common/kafka"
 	"context"
 	"github.com/gin-gonic/gin"
+	"github.com/joho/godotenv"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 	"log"
@@ -52,12 +53,22 @@ import (
 // @tag.description Операции с ключами шифрования
 
 func main() {
+	// Загружаем переменные окружения из .env файла (если существует)
+	if err := godotenv.Load(); err != nil {
+		log.Printf("No .env file found or error loading .env file: %v", err)
+	}
+
 	//Upload config
 	cfg, err := config.LoadConfig("config/config.yaml")
 	if err != nil {
 		log.Fatal("Can't load config " + err.Error())
 		return
 	}
+
+	// Apply environment variable overrides
+	config.ApplyDatabaseEnvOverrides(cfg)
+	config.ApplyAppEnvOverrides(cfg)
+	config.ApplyKeysEnvOverrides(cfg)
 
 	//Init DB
 	db, err := db.InitDB(cfg)
