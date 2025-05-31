@@ -3,7 +3,6 @@ package middlewares
 import (
 	"apiService/internal/services"
 	"context"
-	"crypto/rsa"
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
@@ -13,7 +12,8 @@ import (
 	"time"
 )
 
-func JWTMiddleware(publicKey *rsa.PublicKey) gin.HandlerFunc {
+// JWTMiddlewareWithKeyManager создает middleware с динамическим обновлением ключей
+func JWTMiddlewareWithKeyManager(publicKeyManager *services.PublicKeyManager, sessionService *services.SessionService) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		type Claims struct {
 			UserID      uuid.UUID `json:"user_id"`
@@ -29,46 +29,12 @@ func JWTMiddleware(publicKey *rsa.PublicKey) gin.HandlerFunc {
 
 		tokenStr := strings.TrimPrefix(authHeader, "Bearer ")
 
-		token, err := jwt.ParseWithClaims(tokenStr, &Claims{}, func(token *jwt.Token) (interface{}, error) {
-			if _, ok := token.Method.(*jwt.SigningMethodRSA); !ok {
-				return nil, fmt.Errorf("unexpected signing method")
-			}
-			return publicKey, nil
-		})
-
-		if err != nil || !token.Valid {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Invalid token: " + err.Error()})
+		// Получаем текущий публичный ключ (thread-safe)
+		publicKey := publicKeyManager.GetCurrentKey()
+		if publicKey == nil {
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Public key not available"})
 			return
 		}
-
-		claims, ok := token.Claims.(*Claims)
-		if !ok {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Invalid token claims"})
-			return
-		}
-
-		c.Set("userID", claims.UserID)
-		c.Set("permissions", claims.Permissions)
-		c.Next()
-	}
-}
-
-// JWTMiddlewareWithRedis создает middleware с проверкой сессий в Redis
-func JWTMiddlewareWithRedis(publicKey *rsa.PublicKey, sessionService *services.SessionService) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		type Claims struct {
-			UserID      uuid.UUID `json:"user_id"`
-			Permissions []string  `json:"permissions"`
-			jwt.RegisteredClaims
-		}
-
-		authHeader := c.GetHeader("Authorization")
-		if authHeader == "" || !strings.HasPrefix(authHeader, "Bearer ") {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Missing or invalid Authorization header"})
-			return
-		}
-
-		tokenStr := strings.TrimPrefix(authHeader, "Bearer ")
 
 		token, err := jwt.ParseWithClaims(tokenStr, &Claims{}, func(token *jwt.Token) (interface{}, error) {
 			if _, ok := token.Method.(*jwt.SigningMethodRSA); !ok {
@@ -105,7 +71,8 @@ func JWTMiddlewareWithRedis(publicKey *rsa.PublicKey, sessionService *services.S
 
 		c.Set("userID", claims.UserID)
 		c.Set("permissions", claims.Permissions)
-		c.Set("token", tokenStr) // Сохраняем токен для возможности отзыва
+		c.Set("token", tokenStr)
+		c.Set("keyVersion", publicKeyManager.GetKeyVersion()) // Добавляем версию ключа для отладки
 		c.Next()
 	}
 }

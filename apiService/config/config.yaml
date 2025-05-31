@@ -5,3 +5,6 @@ redis:
   db: 0
 app:
   port: 8084
+kafka:
+  consumer:
+    group_id: "api_service_key_updates"  # Уникальный ID группы для apiService

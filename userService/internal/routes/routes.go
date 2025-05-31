@@ -31,6 +31,10 @@ func RegisterRoutes(router *gin.Engine, authHandler *handlers.AuthHandler, userH
 			permissions.GET("/", permHandler.GetPermissions)
 		}
 
-		v1.GET("/key", keyHandler.GetPublicKey)
+		keys := v1.Group("/keys")
+		{
+			keys.GET("/public", keyHandler.GetPublicKey)
+			keys.POST("/regenerate", keyHandler.RegenerateKeys)
+		}
 	}
 }

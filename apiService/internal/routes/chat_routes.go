@@ -4,12 +4,11 @@ import (
 	"apiService/internal/handlers"
 	"apiService/internal/middlewares"
 	"apiService/internal/services"
-	"crypto/rsa"
 	"github.com/gin-gonic/gin"
 )
 
-func RegisterChatRoutes(router *gin.Engine, chatHandler *handlers.ChatHandler, publicKey *rsa.PublicKey, sessionService *services.SessionService) {
-	chats := router.Group("api/v1/chats").Use(middlewares.JWTMiddlewareWithRedis(publicKey, sessionService))
+func RegisterChatRoutes(router *gin.Engine, chatHandler *handlers.ChatHandler, publicKeyManager *services.PublicKeyManager, sessionService *services.SessionService) {
+	chats := router.Group("api/v1/chats").Use(middlewares.JWTMiddlewareWithKeyManager(publicKeyManager, sessionService))
 	{
 		chats.GET("/:user_id", chatHandler.GetUserChats)
 		chats.POST("", chatHandler.CreateChat)

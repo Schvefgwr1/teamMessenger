@@ -2,14 +2,16 @@ package services
 
 import (
 	"apiService/internal/http_clients"
-	"crypto/rsa"
+	"fmt"
 )
 
-func LoadPublicKeyFromService(client http_clients.UserClient, publicKey **rsa.PublicKey) error {
+// LoadPublicKeyFromService загружает начальный публичный ключ из userService
+func LoadPublicKeyFromService(client http_clients.UserClient, publicKeyManager *PublicKeyManager) error {
 	key, err := client.GetPublicKey()
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to load public key from userService: %w", err)
 	}
-	*publicKey = key
+
+	publicKeyManager.SetInitialKey(key)
 	return nil
 }

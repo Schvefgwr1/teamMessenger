@@ -4,11 +4,15 @@ import (
 	"common/config"
 	"common/db"
 	"common/kafka"
+	"context"
 	"github.com/gin-gonic/gin"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 	"log"
+	"os"
+	"os/signal"
 	"strconv"
+	"syscall"
 	_ "userService/docs"
 	"userService/internal/controllers"
 	"userService/internal/handlers"
@@ -44,6 +48,9 @@ import (
 // @tag.name roles
 // @tag.description Операции с ролями пользователей
 
+// @tag.name keys
+// @tag.description Операции с ключами шифрования
+
 func main() {
 	//Upload config
 	cfg, err := config.LoadConfig("config/config.yaml")
@@ -60,15 +67,46 @@ func main() {
 	}
 
 	// Init Kafka notification service
-	kafkaConfig := &kafka.ProducerConfig{
+	notificationKafkaConfig := &kafka.ProducerConfig{
 		Brokers: kafka.GetKafkaBrokers(),
 		Topic:   kafka.GetNotificationsTopic(),
 	}
 
-	notificationService, err := services.NewNotificationService(kafkaConfig)
+	notificationService, err := services.NewNotificationService(notificationKafkaConfig)
 	if err != nil {
 		log.Printf("Warning: Failed to initialize notification service: %v", err)
 		notificationService = nil
+	}
+
+	// Init Kafka key management service
+	keyKafkaConfig := &kafka.ProducerConfig{
+		Brokers: kafka.GetKafkaBrokers(),
+		Topic:   kafka.GetKeyUpdatesTopic(),
+	}
+
+	keyManagementService, err := services.NewKeyManagementService(keyKafkaConfig)
+	if err != nil {
+		log.Printf("Warning: Failed to initialize key management service: %v", err)
+		keyManagementService = nil
+	}
+
+	// Init key scheduler
+	var keySchedulerService *services.KeySchedulerService
+	if keyManagementService != nil {
+		keyRotationInterval, err := cfg.GetKeyRotationInterval()
+		if err != nil {
+			log.Printf("Warning: Invalid key rotation interval in config, using default: %v", err)
+			keyRotationInterval = 24 * 60 * 60 * 1000000000 // 24 часа в наносекундах
+		}
+
+		keySchedulerService = services.NewKeySchedulerService(keyManagementService, keyRotationInterval)
+
+		// Запускаем scheduler в отдельной горутине
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+		keySchedulerService.Start(ctx)
+
+		log.Printf("Key rotation scheduler started with interval: %v", keyRotationInterval)
 	}
 
 	// Init repositories
@@ -87,7 +125,7 @@ func main() {
 	roleHandler := handlers.NewRoleHandler(roleController)
 	userHandler := handlers.NewUserHandler(userController)
 	authHandler := handlers.NewAuthHandler(authController)
-	keyHandler := handlers.NewKeyHandler()
+	keyHandler := handlers.NewKeyHandler(keyManagementService)
 
 	r := gin.Default()
 
@@ -95,14 +133,34 @@ func main() {
 
 	routes.RegisterRoutes(r, authHandler, userHandler, roleHandler, permissionHandler, keyHandler)
 
-	// Graceful shutdown для Kafka producer
-	defer func() {
-		if notificationService != nil {
-			if err := notificationService.Close(); err != nil {
-				log.Printf("Error closing notification service: %v", err)
-			}
-		}
+	// Graceful shutdown
+	go func() {
+		_ = r.Run(":" + strconv.Itoa(cfg.App.Port))
 	}()
 
-	_ = r.Run(":" + strconv.Itoa(cfg.App.Port))
+	// Ожидание сигнала завершения
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+
+	log.Println("Shutting down server...")
+
+	// Остановка сервисов
+	if keySchedulerService != nil {
+		keySchedulerService.Stop()
+	}
+
+	if keyManagementService != nil {
+		if err := keyManagementService.Close(); err != nil {
+			log.Printf("Error closing key management service: %v", err)
+		}
+	}
+
+	if notificationService != nil {
+		if err := notificationService.Close(); err != nil {
+			log.Printf("Error closing notification service: %v", err)
+		}
+	}
+
+	log.Println("Server exited")
 }

@@ -139,7 +139,7 @@ func (c *userClient) UpdateUser(userID string, req *au.UpdateUserRequest) (*au.U
 }
 
 func (c *userClient) GetPublicKey() (*rsa.PublicKey, error) {
-	resp, err := http.Get(c.host + "/api/v1/key")
+	resp, err := http.Get(c.host + "/api/v1/keys/public")
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch public key: %w", err)
 	}

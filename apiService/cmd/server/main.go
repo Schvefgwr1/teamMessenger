@@ -7,11 +7,15 @@ import (
 	"apiService/internal/routes"
 	"apiService/internal/services"
 	common "common/config"
+	"common/kafka"
 	commonRedis "common/redis"
-	"crypto/rsa"
+	"context"
 	"github.com/gin-gonic/gin"
 	"log"
+	"os"
+	"os/signal"
 	"strconv"
+	"syscall"
 	_ "userService/docs"
 )
 
@@ -49,11 +53,45 @@ func main() {
 	chatClient := http_clients.NewChatClient("http://localhost:8083")
 	taskClient := http_clients.NewTaskClient("http://localhost:8081")
 
-	var publicKey *rsa.PublicKey
+	// Init PublicKeyManager
+	publicKeyManager := services.NewPublicKeyManager()
 
-	errLoad := services.LoadPublicKeyFromService(userClient, &publicKey)
+	// Load initial public key from userService
+	errLoad := services.LoadPublicKeyFromService(userClient, publicKeyManager)
 	if errLoad != nil {
-		log.Fatalf("Could not load public key: %v", errLoad)
+		log.Fatalf("Could not load initial public key: %v", errLoad)
+	}
+	log.Printf("Initial public key loaded (version %d)", publicKeyManager.GetKeyVersion())
+
+	// Init Kafka key update consumer
+	keyConsumerConfig := &services.KeyUpdateConsumerConfig{
+		Brokers: kafka.GetKafkaBrokers(),
+		Topic:   kafka.GetKeyUpdatesTopic(),
+		GroupID: cfg.Kafka.Consumer.GroupID,
+	}
+
+	keyUpdateConsumer, err := services.NewKeyUpdateConsumer(
+		keyConsumerConfig,
+		publicKeyManager,
+		sessionService,
+		redisClient,
+	)
+	if err != nil {
+		log.Printf("Warning: Failed to initialize key update consumer: %v", err)
+		keyUpdateConsumer = nil
+	}
+
+	// Start key update consumer
+	var consumerCtx context.Context
+	var consumerCancel context.CancelFunc
+	if keyUpdateConsumer != nil {
+		consumerCtx, consumerCancel = context.WithCancel(context.Background())
+		go func() {
+			if err := keyUpdateConsumer.Start(consumerCtx); err != nil {
+				log.Printf("Key update consumer error: %v", err)
+			}
+		}()
+		log.Println("Key update consumer started")
 	}
 
 	//Init controllers with cache service
@@ -70,10 +108,34 @@ func main() {
 
 	r := gin.Default()
 
-	routes.RegisterAuthRoutes(r, authHandler, publicKey, sessionService)
-	routes.RegisterUserRoutes(r, userHandler, publicKey, sessionService)
-	routes.RegisterChatRoutes(r, chatHandler, publicKey, sessionService)
-	routes.RegisterTaskRoutes(r, taskHandler, publicKey, sessionService)
+	// Use new middleware with PublicKeyManager
+	routes.RegisterAuthRoutes(r, authHandler, publicKeyManager, sessionService)
+	routes.RegisterUserRoutes(r, userHandler, publicKeyManager, sessionService)
+	routes.RegisterChatRoutes(r, chatHandler, publicKeyManager, sessionService)
+	routes.RegisterTaskRoutes(r, taskHandler, publicKeyManager, sessionService)
 
-	_ = r.Run(":" + strconv.Itoa(cfg.App.Port))
+	// Graceful shutdown
+	go func() {
+		_ = r.Run(":" + strconv.Itoa(cfg.App.Port))
+	}()
+
+	// Ожидание сигнала завершения
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+
+	log.Println("Shutting down server...")
+
+	// Остановка сервисов
+	if consumerCancel != nil {
+		consumerCancel()
+	}
+
+	if keyUpdateConsumer != nil {
+		if err := keyUpdateConsumer.Close(); err != nil {
+			log.Printf("Error closing key update consumer: %v", err)
+		}
+	}
+
+	log.Println("Server exited")
 }

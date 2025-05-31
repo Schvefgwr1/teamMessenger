@@ -28,3 +28,12 @@ func GetNotificationsTopic() string {
 	}
 	return topic
 }
+
+// GetKeyUpdatesTopic получает топик для обновлений ключей из переменных окружения
+func GetKeyUpdatesTopic() string {
+	topic := os.Getenv("KAFKA_TOPIC_KEY_UPDATES")
+	if topic == "" {
+		return "key_updates" // значение по умолчанию
+	}
+	return topic
+}

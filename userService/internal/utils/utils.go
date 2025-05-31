@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
@@ -77,6 +78,116 @@ func ExtractPublicKeyFromFile() (*rsa.PublicKey, error) {
 	}
 
 	return pubKey, nil
+}
+
+// GenerateKeyPair генерирует новую пару RSA ключей
+func GenerateKeyPair(bitSize int) (*rsa.PrivateKey, *rsa.PublicKey, error) {
+	if bitSize < 2048 {
+		bitSize = 2048 // Минимальный размер для безопасности
+	}
+
+	privateKey, err := rsa.GenerateKey(rand.Reader, bitSize)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return privateKey, &privateKey.PublicKey, nil
+}
+
+// SavePrivateKeyToFile сохраняет приватный ключ в PEM-файл
+func SavePrivateKeyToFile(privateKey *rsa.PrivateKey) error {
+	wd, err := os.Getwd()
+	if err != nil {
+		return err
+	}
+
+	keyPath := filepath.Join(wd, "cmd", "keys", "private.pem")
+
+	// Создаем директорию если её нет
+	if err := os.MkdirAll(filepath.Dir(keyPath), 0755); err != nil {
+		return err
+	}
+
+	// Кодируем ключ в PKCS8 формат
+	privateKeyBytes, err := x509.MarshalPKCS8PrivateKey(privateKey)
+	if err != nil {
+		return err
+	}
+
+	// Создаем PEM блок
+	privateKeyPEM := pem.EncodeToMemory(&pem.Block{
+		Type:  "PRIVATE KEY",
+		Bytes: privateKeyBytes,
+	})
+
+	// Записываем в файл
+	return os.WriteFile(keyPath, privateKeyPEM, 0600)
+}
+
+// SavePublicKeyToFile сохраняет публичный ключ в PEM-файл
+func SavePublicKeyToFile(publicKey *rsa.PublicKey) error {
+	wd, err := os.Getwd()
+	if err != nil {
+		return err
+	}
+
+	keyPath := filepath.Join(wd, "cmd", "keys", "public.pem")
+
+	// Создаем директорию если её нет
+	if err := os.MkdirAll(filepath.Dir(keyPath), 0755); err != nil {
+		return err
+	}
+
+	// Кодируем ключ в PKIX формат
+	publicKeyBytes, err := x509.MarshalPKIXPublicKey(publicKey)
+	if err != nil {
+		return err
+	}
+
+	// Создаем PEM блок
+	publicKeyPEM := pem.EncodeToMemory(&pem.Block{
+		Type:  "PUBLIC KEY",
+		Bytes: publicKeyBytes,
+	})
+
+	// Записываем в файл
+	return os.WriteFile(keyPath, publicKeyPEM, 0644)
+}
+
+// GenerateAndSaveNewKeys генерирует новую пару ключей и сохраняет их в файлы
+func GenerateAndSaveNewKeys() (*rsa.PublicKey, error) {
+	// Генерируем новую пару ключей
+	privateKey, publicKey, err := GenerateKeyPair(2048)
+	if err != nil {
+		return nil, err
+	}
+
+	// Сохраняем приватный ключ
+	if err := SavePrivateKeyToFile(privateKey); err != nil {
+		return nil, err
+	}
+
+	// Сохраняем публичный ключ
+	if err := SavePublicKeyToFile(publicKey); err != nil {
+		return nil, err
+	}
+
+	return publicKey, nil
+}
+
+// PublicKeyToPEM конвертирует публичный ключ в PEM строку
+func PublicKeyToPEM(publicKey *rsa.PublicKey) (string, error) {
+	publicKeyBytes, err := x509.MarshalPKIXPublicKey(publicKey)
+	if err != nil {
+		return "", err
+	}
+
+	publicKeyPEM := pem.EncodeToMemory(&pem.Block{
+		Type:  "PUBLIC KEY",
+		Bytes: publicKeyBytes,
+	})
+
+	return string(publicKeyPEM), nil
 }
 
 // GenerateJWT создает JWT токен по приватному ключу
