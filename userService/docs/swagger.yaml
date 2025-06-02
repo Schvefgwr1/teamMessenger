@@ -1,0 +1,376 @@
+basePath: /api/v1
+definitions:
+  dto.CreateRole:
+    properties:
+      description:
+        type: string
+      name:
+        type: string
+      permissionIds:
+        items:
+          type: integer
+        type: array
+    type: object
+  dto.Login:
+    properties:
+      login:
+        type: string
+      password:
+        type: string
+    required:
+    - login
+    - password
+    type: object
+  dto.Register:
+    properties:
+      age:
+        type: integer
+      avatar:
+        type: integer
+      description:
+        type: string
+      email:
+        type: string
+      gender:
+        type: string
+      password:
+        minLength: 6
+        type: string
+      roleID:
+        type: integer
+      username:
+        type: string
+    required:
+    - age
+    - email
+    - password
+    - roleID
+    - username
+    type: object
+  dto.UserUpdate:
+    properties:
+      age:
+        type: integer
+      avatar:
+        type: integer
+      description:
+        type: string
+      gender:
+        type: string
+      roleID:
+        type: integer
+      username:
+        type: string
+    type: object
+  models.Permission:
+    properties:
+      description:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+    type: object
+  models.Role:
+    properties:
+      description:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      permissions:
+        items:
+          $ref: '#/definitions/models.Permission'
+        type: array
+    type: object
+  models.User:
+    properties:
+      age:
+        type: integer
+      avatarFileID:
+        type: integer
+      createdAt:
+        type: string
+      description:
+        type: string
+      email:
+        type: string
+      gender:
+        type: string
+      id:
+        type: string
+      passwordHash:
+        type: string
+      role:
+        $ref: '#/definitions/models.Role'
+      roleID:
+        type: integer
+      updatedAt:
+        type: string
+      username:
+        type: string
+    type: object
+externalDocs:
+  description: OpenAPI
+  url: https://swagger.io/resources/open-api/
+host: localhost:8082
+info:
+  contact:
+    email: support@swagger.io
+    name: API Support
+    url: http://www.swagger.io/support
+  description: API сервиса для работы с пользователями
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  termsOfService: http://swagger.io/terms/
+  title: User Service API
+  version: "1.0"
+paths:
+  /auth/login:
+    post:
+      consumes:
+      - application/json
+      description: Выполняет вход пользователя по логину и паролю
+      parameters:
+      - description: Данные для входа
+        in: body
+        name: credentials
+        required: true
+        schema:
+          $ref: '#/definitions/dto.Login'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Токен доступа
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Некорректный запрос
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Неверные учетные данные
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Ошибка генерации токена или сервера
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Авторизация пользователя
+      tags:
+      - auth
+  /auth/register:
+    post:
+      consumes:
+      - application/json
+      description: Регистрирует нового пользователя в системе
+      parameters:
+      - description: Данные для регистрации
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/dto.Register'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Пользователь успешно зарегистрирован
+          schema:
+            $ref: '#/definitions/models.User'
+        "400":
+          description: Некорректный запрос
+          schema:
+            additionalProperties: true
+            type: object
+        "409":
+          description: Почта или логин уже заняты
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties: true
+            type: object
+        "502":
+          description: Ошибка при получении файла аватара
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Регистрация нового пользователя
+      tags:
+      - auth
+  /permissions/:
+    get:
+      description: Возвращает список всех прав (permissions)
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Список прав
+          schema:
+            items:
+              $ref: '#/definitions/models.Permission'
+            type: array
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Получение всех прав доступа
+      tags:
+      - permissions
+  /roles/:
+    get:
+      description: Возвращает список всех ролей в системе
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Список ролей
+          schema:
+            items:
+              $ref: '#/definitions/models.Role'
+            type: array
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Получение всех ролей
+      tags:
+      - roles
+    post:
+      consumes:
+      - application/json
+      description: Добавляет новую роль в систему
+      parameters:
+      - description: Данные новой роли
+        in: body
+        name: role
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateRole'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Роль создана
+          schema:
+            $ref: '#/definitions/dto.CreateRole'
+        "400":
+          description: Некорректный запрос
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Создание новой роли
+      tags:
+      - roles
+  /users/{user_id}:
+    get:
+      description: Возвращает информацию о пользователе и его аватаре по ID
+      parameters:
+      - description: UUID пользователя
+        in: path
+        name: user_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Информация о пользователе и аватаре
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Неверный UUID
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Пользователь не найден
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Получить профиль пользователя
+      tags:
+      - users
+    put:
+      consumes:
+      - application/json
+      description: Обновляет данные пользователя по ID
+      parameters:
+      - description: UUID пользователя
+        in: path
+        name: user_id
+        required: true
+        type: string
+      - description: Новые данные профиля
+        in: body
+        name: profile
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UserUpdate'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Профиль успешно обновлен
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Некорректный запрос или файл
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Неверные учетные данные
+          schema:
+            additionalProperties: true
+            type: object
+        "409":
+          description: Логин уже используется
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties: true
+            type: object
+        "502":
+          description: Ошибка при обращении к файлу
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Обновление информации профиля пользователя
+      tags:
+      - users
+schemes:
+- http
+swagger: "2.0"
+tags:
+- description: Регистрация и аутентификация
+  name: auth
+- description: Операции с пользователем
+  name: users
+- description: Операции с правами доступа
+  name: permissions
+- description: Операции с ролями пользователей
+  name: roles

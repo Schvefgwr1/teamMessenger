@@ -35,3 +35,12 @@ CREATE TABLE IF NOT EXISTS user_service.users (
                                     created_at TIMESTAMP DEFAULT NOW(),
                                     updated_at TIMESTAMP DEFAULT NOW()
 );
+
+INSERT INTO user_service.permissions (name, description) VALUES
+    ('Test Permission','Test Permission'),
+    ('Test Permission 2','Test Permission 2')
+;
+
+INSERT INTO user_service.roles (name, description) VALUES  ('Test role','Test role');
+
+INSERT INTO user_service.role_permissions (role_id, permission_id) VALUES (1, 1), (1, 2);

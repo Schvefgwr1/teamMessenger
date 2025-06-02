@@ -17,7 +17,6 @@ import (
 	"os/signal"
 	"strconv"
 	"syscall"
-	_ "userService/docs"
 )
 
 // @title Service API

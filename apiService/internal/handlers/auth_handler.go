@@ -7,6 +7,7 @@ import (
 	au "common/contracts/api-user"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -38,8 +39,9 @@ func (h *AuthHandler) Register(c *gin.Context) {
 
 	// Handle optional file upload
 	file, err := c.FormFile("file")
-	if err != nil {
+	if err != nil && !errors.Is(err, http.ErrMissingFile) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
 	}
 
 	userResponse := h.authController.Register(&registerData, file)

@@ -73,7 +73,7 @@ func (c *FileController) UploadFile(fileHeader *multipart.FileHeader) (*models.F
 		return nil, err
 	}
 
-	fileURL := fmt.Sprintf("http://%s/%s/%s", c.minioConfig.Host, bucketName, objectName)
+	fileURL := fmt.Sprintf("http://%s/%s/%s", c.getExternalHost(), bucketName, objectName)
 
 	newFile := &models.File{
 		Name:       objectName,
@@ -104,7 +104,7 @@ func (c *FileController) GetFile(id int) (*fc.File, error) {
 		return nil, err
 	}
 
-	actualURL := fmt.Sprintf("http://%s/%s/%s", c.minioConfig.Host, c.minioConfig.Bucket, file.Name)
+	actualURL := fmt.Sprintf("http://%s/%s/%s", c.getExternalHost(), c.minioConfig.Bucket, file.Name)
 	if file.URL != actualURL {
 		file.URL = actualURL
 		errorRepo := c.repo.UpdateFile(file)
@@ -174,7 +174,7 @@ func (c *FileController) RenameFile(id int, newName string) (*models.File, error
 
 	// Обновляем запись в БД
 	file.Name = newObjectName + "." + newObjectType
-	file.URL = fmt.Sprintf("http://%s/%s/%s", c.minioConfig.Host, c.minioConfig.Bucket, file.Name)
+	file.URL = fmt.Sprintf("http://%s/%s/%s", c.getExternalHost(), c.minioConfig.Bucket, file.Name)
 	err = c.repo.UpdateFile(file)
 	if err != nil {
 		return nil, err
@@ -185,4 +185,12 @@ func (c *FileController) RenameFile(id int, newName string) (*models.File, error
 
 func (c *FileController) GetFileNamesWithPagination(limit, offset int) (*[]dto.FileInformation, error) {
 	return c.repo.GetFileNamesWithPagination(limit, offset)
+}
+
+// getExternalHost возвращает внешний хост MinIO или обычный хост если внешний не задан
+func (c *FileController) getExternalHost() string {
+	if c.minioConfig.ExternalHost != "" {
+		return c.minioConfig.ExternalHost
+	}
+	return c.minioConfig.Host
 }

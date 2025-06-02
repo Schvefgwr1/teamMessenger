@@ -52,6 +52,9 @@ func ApplyMinIOEnvOverrides(cfg *Config) {
 	if host := os.Getenv("MINIO_HOST"); host != "" {
 		cfg.MinIO.Host = host
 	}
+	if externalHost := os.Getenv("MINIO_EXTERNAL_HOST"); externalHost != "" {
+		cfg.MinIO.ExternalHost = externalHost
+	}
 	if bucket := os.Getenv("MINIO_BUCKET"); bucket != "" {
 		cfg.MinIO.Bucket = bucket
 	}

@@ -12,3 +12,9 @@ CREATE TABLE IF NOT EXISTS file_service.files (
                                     url TEXT NOT NULL,
                                     created_at TIMESTAMP DEFAULT NOW()
 );
+
+INSERT INTO file_service.file_types (name) VALUES
+    ('application/pdf'),
+    ('application/png'),
+    ('image/png')
+;

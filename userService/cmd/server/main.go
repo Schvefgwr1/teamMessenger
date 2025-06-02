@@ -20,6 +20,7 @@ import (
 	"userService/internal/repositories"
 	"userService/internal/routes"
 	"userService/internal/services"
+	"userService/internal/utils"
 )
 
 // @title User Service API
@@ -69,6 +70,11 @@ func main() {
 	config.ApplyDatabaseEnvOverrides(cfg)
 	config.ApplyAppEnvOverrides(cfg)
 	config.ApplyKeysEnvOverrides(cfg)
+
+	// Initialize keys if they don't exist
+	if err := initializeKeysIfNeeded(); err != nil {
+		log.Printf("Warning: Failed to initialize keys: %v", err)
+	}
 
 	//Init DB
 	db, err := db.InitDB(cfg)
@@ -174,4 +180,25 @@ func main() {
 	}
 
 	log.Println("Server exited")
+}
+
+// initializeKeysIfNeeded проверяет наличие ключей и создает их если их нет
+func initializeKeysIfNeeded() error {
+	// Пытаемся загрузить существующий публичный ключ
+	_, err := utils.ExtractPublicKeyFromFile()
+	if err == nil {
+		// Ключи уже существуют
+		log.Println("RSA keys already exist")
+		return nil
+	}
+
+	// Ключей нет, генерируем новые
+	log.Println("RSA keys not found, generating new keys...")
+	_, err = utils.GenerateAndSaveNewKeys()
+	if err != nil {
+		return err
+	}
+
+	log.Println("RSA keys generated successfully")
+	return nil
 }

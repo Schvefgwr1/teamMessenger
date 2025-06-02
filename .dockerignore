@@ -1,0 +1,71 @@
+# Git
+.git
+.gitignore
+
+# Documentation
+README.md
+DOCKER.md
+*.md
+
+# Docker files
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Environment files
+.env
+.env.*
+*.env
+docker.env.example
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Build artifacts
+*/vendor/
+*/node_modules/
+*/dist/
+*/build/
+
+# Compiled binaries
+*/main
+*/server
+*/*.exe
+*/*.so
+*/*.dylib
+
+# Test files
+*/*_test.go
+*/test/
+*/tests/
+*/.coverage
+*/coverage.html
+
+# Documentation and examples (исключаем только корневые файлы)
+docs/
+examples/
+swagger.yaml
+swagger.json
+
+# Go sum files (будут регенерированы в контейнере)
+go.sum
+*/go.sum
+
+# Scripts and makefiles (except the ones we need)
+Makefile 

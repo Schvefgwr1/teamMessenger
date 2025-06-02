@@ -12,10 +12,11 @@ type AppConfig struct {
 }
 
 type MinIO struct {
-	Host      string `yaml:"host"`
-	AccessKey string `yaml:"access_key"`
-	SecretKey string `yaml:"secret_key"`
-	Bucket    string `yaml:"bucket"`
+	Host         string `yaml:"host"`
+	ExternalHost string `yaml:"external_host"`
+	AccessKey    string `yaml:"access_key"`
+	SecretKey    string `yaml:"secret_key"`
+	Bucket       string `yaml:"bucket"`
 }
 
 type Redis struct {

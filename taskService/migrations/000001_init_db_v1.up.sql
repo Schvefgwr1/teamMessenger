@@ -23,3 +23,8 @@ CREATE TABLE IF NOT EXISTS task_service.task_files (
                                          file_id INT,
                                          PRIMARY KEY (task_id, file_id)
 );
+
+INSERT INTO task_service.task_statuses (name) VALUES
+    ('canseled'),
+    ('created')
+;

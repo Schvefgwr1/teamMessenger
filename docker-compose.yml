@@ -1,0 +1,387 @@
+networks:
+  team-messenger-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  minio_data:
+  kafka_data:
+  zookeeper_data:
+  redis_data:
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: team-messenger-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-team_messenger}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    networks:
+      - team-messenger-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-team_messenger}"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # Redis
+  redis:
+    image: redis:7-alpine
+    container_name: team-messenger-redis
+    restart: unless-stopped
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
+    command: >
+      sh -c "
+        if [ -n \"${REDIS_PASSWORD:-}\" ]; then
+          redis-server --requirepass ${REDIS_PASSWORD}
+        else
+          redis-server
+        fi
+      "
+    volumes:
+      - redis_data:/data
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    networks:
+      - team-messenger-network
+    healthcheck:
+      test: >
+        sh -c "
+          if [ -n \"${REDIS_PASSWORD:-}\" ]; then
+            redis-cli -a ${REDIS_PASSWORD} ping
+          else
+            redis-cli ping
+          fi
+        "
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # Zookeeper (для Kafka)
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.4.0
+    container_name: team-messenger-zookeeper
+    restart: unless-stopped
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    volumes:
+      - zookeeper_data:/var/lib/zookeeper/data
+    networks:
+      - team-messenger-network
+
+  # Kafka
+  kafka:
+    image: confluentinc/cp-kafka:7.4.0
+    container_name: team-messenger-kafka
+    restart: unless-stopped
+    depends_on:
+      - zookeeper
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
+    volumes:
+      - kafka_data:/var/lib/kafka/data
+    ports:
+      - "${KAFKA_PORT:-9092}:9092"
+    networks:
+      - team-messenger-network
+    healthcheck:
+      test: ["CMD", "kafka-broker-api-versions", "--bootstrap-server", "localhost:9092"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # MinIO Object Storage
+  minio:
+    image: minio/minio:latest
+    container_name: team-messenger-minio
+    restart: unless-stopped
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin123}
+    volumes:
+      - minio_data:/data
+    ports:
+      - "${MINIO_API_PORT:-9000}:9000"
+      - "${MINIO_CONSOLE_PORT:-9001}:9001"
+    networks:
+      - team-messenger-network
+    command: server /data --console-address ":9001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # MinIO bucket initialization
+  minio-init:
+    image: minio/mc:latest
+    container_name: team-messenger-minio-init
+    depends_on:
+      minio:
+        condition: service_healthy
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin123}
+      MINIO_BUCKET: ${MINIO_BUCKET:-teamfiles}
+    networks:
+      - team-messenger-network
+    entrypoint: >
+      /bin/sh -c "
+      echo 'Waiting for MinIO to be ready...';
+      until mc alias set minio http://minio:9000 $$MINIO_ROOT_USER $$MINIO_ROOT_PASSWORD; do
+        echo 'MinIO not ready, waiting...';
+        sleep 2;
+      done;
+      echo 'MinIO is ready. Creating bucket...';
+      mc mb minio/$$MINIO_BUCKET --ignore-existing;
+      echo 'Setting bucket policy to public for downloads...';
+      mc anonymous set download minio/$$MINIO_BUCKET;
+      echo 'Bucket $$MINIO_BUCKET created and configured successfully!';
+      "
+    restart: "no"
+
+  # Nginx proxy for MinIO
+  nginx:
+    image: nginx:alpine
+    container_name: team-messenger-nginx
+    restart: unless-stopped
+    depends_on:
+      - minio
+    ports:
+      - "${NGINX_PORT:-8090}:80"
+    networks:
+      - team-messenger-network
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # User Service
+  user-service:
+    build:
+      context: .
+      dockerfile: userService/Dockerfile
+    container_name: team-messenger-user-service
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    environment:
+      # Переменные для соединения с инфраструктурой (переопределяют локальный .env)
+      - DB_HOST=postgres
+      - DB_USER=${POSTGRES_USER:-postgres}
+      - DB_PASSWORD=${POSTGRES_PASSWORD:-postgres}
+      - DB_NAME=${POSTGRES_DB:-team_messenger}
+      - DB_PORT=5432
+      - APP_PORT=${USER_SERVICE_PORT:-8082}
+      - APP_NAME=user-service
+      - KEY_ROTATION_INTERVAL=${KEY_ROTATION_INTERVAL:-24h}
+      - KAFKA_BROKERS=${KAFKA_BROKERS:-kafka:9092}
+      - FILE_SERVICE_URL=http://file-service:${FILE_SERVICE_PORT:-8080}
+    ports:
+      - "${USER_SERVICE_PORT:-8082}:${USER_SERVICE_PORT:-8082}"
+    networks:
+      - team-messenger-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:${USER_SERVICE_PORT:-8082}/swagger/index.html"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # File Service
+  file-service:
+    build:
+      context: .
+      dockerfile: fileService/Dockerfile
+    container_name: team-messenger-file-service
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
+    environment:
+      # Переменные для соединения с инфраструктурой (переопределяют локальный .env)
+      - DB_HOST=postgres
+      - DB_USER=${POSTGRES_USER:-postgres}
+      - DB_PASSWORD=${POSTGRES_PASSWORD:-postgres}
+      - DB_NAME=${POSTGRES_DB:-team_messenger}
+      - DB_PORT=5432
+      - APP_PORT=${FILE_SERVICE_PORT:-8080}
+      - MINIO_HOST=minio:9000
+      - MINIO_EXTERNAL_HOST=${MINIO_EXTERNAL_HOST:-localhost:8090}
+      - MINIO_BUCKET=${MINIO_BUCKET:-teamfiles}
+      - MINIO_ACCESS_KEY=${MINIO_ROOT_USER:-minioadmin}
+      - MINIO_SECRET_KEY=${MINIO_ROOT_PASSWORD:-minioadmin123}
+    ports:
+      - "${FILE_SERVICE_PORT:-8080}:${FILE_SERVICE_PORT:-8080}"
+    networks:
+      - team-messenger-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:${FILE_SERVICE_PORT:-8080}/swagger/index.html"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # Task Service
+  task-service:
+    build:
+      context: .
+      dockerfile: taskService/Dockerfile
+    container_name: team-messenger-task-service
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      # Переменные для соединения с инфраструктурой (переопределяют локальный .env)
+      - DB_HOST=postgres
+      - DB_USER=${POSTGRES_USER:-postgres}
+      - DB_PASSWORD=${POSTGRES_PASSWORD:-postgres}
+      - DB_NAME=${POSTGRES_DB:-team_messenger}
+      - DB_PORT=5432
+      - APP_PORT=${TASK_SERVICE_PORT:-8081}
+      - APP_NAME=task-service
+      - FILE_SERVICE_URL=http://file-service:${FILE_SERVICE_PORT:-8080}
+      - CHAT_SERVICE_URL=http://chat-service:${CHAT_SERVICE_PORT:-8083}
+      - USER_SERVICE_URL=http://user-service:${USER_SERVICE_PORT:-8082}
+    ports:
+      - "${TASK_SERVICE_PORT:-8081}:${TASK_SERVICE_PORT:-8081}"
+    networks:
+      - team-messenger-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:${TASK_SERVICE_PORT:-8081}/swagger/index.html"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # Chat Service
+  chat-service:
+    build:
+      context: .
+      dockerfile: chatService/Dockerfile
+    container_name: team-messenger-chat-service
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      # Переменные для соединения с инфраструктурой (переопределяют локальный .env)
+      - DB_HOST=postgres
+      - DB_USER=${POSTGRES_USER:-postgres}
+      - DB_PASSWORD=${POSTGRES_PASSWORD:-postgres}
+      - DB_NAME=${POSTGRES_DB:-team_messenger}
+      - DB_PORT=5432
+      - APP_PORT=${CHAT_SERVICE_PORT:-8083}
+      - APP_NAME=chat-service
+      - FILE_SERVICE_URL=http://file-service:${FILE_SERVICE_PORT:-8080}
+      - USER_SERVICE_URL=http://user-service:${USER_SERVICE_PORT:-8082}
+    ports:
+      - "${CHAT_SERVICE_PORT:-8083}:${CHAT_SERVICE_PORT:-8083}"
+    networks:
+      - team-messenger-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:${CHAT_SERVICE_PORT:-8083}/swagger/index.html"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # Notification Service
+  notification-service:
+    build:
+      context: .
+      dockerfile: notificationService/Dockerfile
+    container_name: team-messenger-notification-service
+    restart: unless-stopped
+    depends_on:
+      kafka:
+        condition: service_healthy
+    environment:
+      # Переменные для соединения с инфраструктурой (переопределяют локальный .env)
+      - APP_NAME=notification-service
+      - APP_PORT=${NOTIFICATION_SERVICE_PORT:-8085}
+      - KAFKA_BROKERS=${KAFKA_BROKERS:-kafka:9092}
+      - KAFKA_GROUP_ID=${NOTIFICATION_KAFKA_GROUP_ID:-notification-service}
+      - NOTIFICATIONS_TOPIC=${NOTIFICATIONS_TOPIC:-notifications}
+      - KEY_UPDATES_TOPIC=${KEY_UPDATES_TOPIC:-key_updates}
+      - SMTP_HOST=${SMTP_HOST:-smtp.yandex.ru}
+      - SMTP_PORT=${SMTP_PORT:-587}
+      - SMTP_USERNAME=${SMTP_USERNAME:-your-email@yandex.ru}
+      - SMTP_PASSWORD=${SMTP_PASSWORD:-your-app-password}
+      - FROM_EMAIL=${FROM_EMAIL:-noreply@teammessenger.com}
+      - FROM_NAME=${FROM_NAME:-TeamMessenger}
+      - TEMPLATE_PATH=${TEMPLATE_PATH:-./templates}
+    ports:
+      - "${NOTIFICATION_SERVICE_PORT:-8085}:${NOTIFICATION_SERVICE_PORT:-8085}"
+    networks:
+      - team-messenger-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:${NOTIFICATION_SERVICE_PORT:-8085}/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # API Service (Gateway)
+  api-service:
+    build:
+      context: .
+      dockerfile: apiService/Dockerfile
+    container_name: team-messenger-api-service
+    restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      user-service:
+        condition: service_healthy
+      file-service:
+        condition: service_healthy
+      task-service:
+        condition: service_healthy
+      chat-service:
+        condition: service_healthy
+    environment:
+      # Переменные для соединения с инфраструктурой (переопределяют локальный .env)
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
+      - REDIS_DB=${REDIS_DB:-0}
+      - APP_PORT=${API_SERVICE_PORT:-8084}
+      - KAFKA_BROKERS=${KAFKA_BROKERS:-kafka:9092}
+      - KAFKA_GROUP_ID=${API_KAFKA_GROUP_ID:-api_service_key_updates}
+      - USER_SERVICE_URL=http://user-service:${USER_SERVICE_PORT:-8082}
+      - CHAT_SERVICE_URL=http://chat-service:${CHAT_SERVICE_PORT:-8083}
+      - TASK_SERVICE_URL=http://task-service:${TASK_SERVICE_PORT:-8081}
+      - FILE_SERVICE_URL=http://file-service:${FILE_SERVICE_PORT:-8080}
+    ports:
+      - "${API_SERVICE_PORT:-8084}:${API_SERVICE_PORT:-8084}"
+    networks:
+      - team-messenger-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:${API_SERVICE_PORT:-8084}/api/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5 

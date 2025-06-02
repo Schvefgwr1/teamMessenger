@@ -2,6 +2,8 @@ module userService
 
 go 1.23.1
 
+replace common => ../common
+
 require (
 	common v0.0.0-00010101000000-000000000000
 	github.com/gin-gonic/gin v1.10.0
@@ -12,10 +14,8 @@ require (
 	github.com/swaggo/gin-swagger v1.6.0
 	github.com/swaggo/swag v1.16.3
 	golang.org/x/crypto v0.26.0
-	gorm.io/gorm v1.25.12
+	gorm.io/gorm v1.26.1
 )
-
-replace common => ../common
 
 require (
 	github.com/IBM/sarama v1.42.1 // indirect

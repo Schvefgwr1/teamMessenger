@@ -1,0 +1,46 @@
+# Базовый Dockerfile для Go микросервисов
+FROM golang:1.23.1-alpine AS builder
+
+# Устанавливаем необходимые пакеты
+RUN apk add --no-cache git ca-certificates tzdata
+
+# Создаем рабочую директорию
+WORKDIR /app
+
+# Копируем go.work файлы
+COPY go.work go.work.sum ./
+
+# Копируем общий модуль
+COPY common/ ./common/
+
+# Копируем модуль конкретного сервиса
+ARG SERVICE_NAME
+COPY ${SERVICE_NAME}/ ./${SERVICE_NAME}/
+
+# Переходим в директорию сервиса и собираем приложение
+WORKDIR /app/${SERVICE_NAME}
+
+# Загружаем зависимости
+RUN go mod download
+
+# Собираем статически связанный бинарный файл
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main ./cmd/server/
+
+# Финальный этап - минимальный образ
+FROM alpine:latest
+
+# Устанавливаем сертификаты и timezone
+RUN apk --no-cache add ca-certificates tzdata
+
+WORKDIR /root/
+
+# Копируем бинарный файл из этапа сборки
+COPY --from=builder /app/${SERVICE_NAME}/main .
+COPY --from=builder /app/${SERVICE_NAME}/config ./config/
+
+# Создаем пользователя для безопасности
+RUN adduser -D -s /bin/sh appuser
+USER appuser
+
+# Указываем команду по умолчанию
+CMD ["./main"] 
