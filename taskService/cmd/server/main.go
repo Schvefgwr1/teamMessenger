@@ -65,6 +65,12 @@ func main() {
 	taskStatusHandler := handlers.NewTaskStatusHandler(taskStatusController)
 
 	r := gin.Default()
+
+	// Health check endpoint
+	r.GET("/health", func(c *gin.Context) {
+		c.JSON(200, gin.H{"status": "ok"})
+	})
+
 	routes.RegisterTaskStatusRoutes(r, taskStatusHandler)
 	routes.RegisterTaskRoutes(r, taskHandler)
 

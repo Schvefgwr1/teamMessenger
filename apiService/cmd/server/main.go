@@ -119,6 +119,11 @@ func main() {
 
 	r := gin.Default()
 
+	// Health check endpoint
+	r.GET("/api/v1/health", func(c *gin.Context) {
+		c.JSON(200, gin.H{"status": "ok"})
+	})
+
 	// Use new middleware with PublicKeyManager
 	routes.RegisterAuthRoutes(r, authHandler, publicKeyManager, sessionService)
 	routes.RegisterUserRoutes(r, userHandler, publicKeyManager, sessionService)

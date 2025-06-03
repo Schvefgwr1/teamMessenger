@@ -4,11 +4,14 @@ import (
 	"common/config"
 	"common/kafka"
 	"context"
+	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 	"log"
+	"net/http"
 	"notificationService/internal/services"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
 	"time"
 )
@@ -56,6 +59,25 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
+	// Запускаем простой HTTP сервер для health check
+	gin.SetMode(gin.ReleaseMode)
+	r := gin.New()
+	r.GET("/health", func(c *gin.Context) {
+		c.JSON(200, gin.H{"status": "ok"})
+	})
+
+	srv := &http.Server{
+		Addr:    ":" + strconv.Itoa(cfg.App.Port),
+		Handler: r,
+	}
+
+	go func() {
+		log.Printf("Starting HTTP server on port %d for health checks...", cfg.App.Port)
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Printf("HTTP server error: %v", err)
+		}
+	}()
+
 	// Запускаем Kafka consumer в горутине
 	go func() {
 		log.Println("Starting Kafka consumer...")
@@ -71,6 +93,13 @@ func main() {
 	<-sigChan
 
 	log.Println("Shutting down Notification Service...")
+
+	// Graceful shutdown HTTP сервера
+	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer shutdownCancel()
+	if err := srv.Shutdown(shutdownCtx); err != nil {
+		log.Printf("Error shutting down HTTP server: %v", err)
+	}
 
 	// Graceful shutdown
 	cancel()

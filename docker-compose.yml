@@ -203,7 +203,7 @@ services:
     networks:
       - team-messenger-network
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:${USER_SERVICE_PORT:-8082}/swagger/index.html"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:${USER_SERVICE_PORT:-8082}/health"]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -240,7 +240,7 @@ services:
     networks:
       - team-messenger-network
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:${FILE_SERVICE_PORT:-8080}/swagger/index.html"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:${FILE_SERVICE_PORT:-8080}/health"]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -272,7 +272,7 @@ services:
     networks:
       - team-messenger-network
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:${TASK_SERVICE_PORT:-8081}/swagger/index.html"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:${TASK_SERVICE_PORT:-8081}/health"]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -303,7 +303,7 @@ services:
     networks:
       - team-messenger-network
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:${CHAT_SERVICE_PORT:-8083}/swagger/index.html"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:${CHAT_SERVICE_PORT:-8083}/health"]
       interval: 30s
       timeout: 10s
       retries: 5
