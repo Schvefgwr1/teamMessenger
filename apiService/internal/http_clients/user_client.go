@@ -6,10 +6,11 @@ import (
 	"crypto/rsa"
 	"encoding/json"
 	"fmt"
-	"github.com/google/uuid"
 	"io"
 	"math/big"
 	"net/http"
+
+	"github.com/google/uuid"
 )
 
 type UserClient interface {
@@ -18,6 +19,9 @@ type UserClient interface {
 	GetUserByID(s string) (*au.GetUserResponse, error)
 	UpdateUser(userID string, req *au.UpdateUserRequest) (*au.UpdateUserResponse, error)
 	GetPublicKey() (*rsa.PublicKey, error)
+	GetAllPermissions() ([]*au.Permission, error)
+	GetAllRoles() ([]*au.Role, error)
+	CreateRole(req *au.CreateRoleRequest) (*au.Role, error)
 }
 
 type userClient struct {
@@ -165,4 +169,78 @@ func (c *userClient) GetPublicKey() (*rsa.PublicKey, error) {
 		N: result.Key.N,
 		E: result.Key.E,
 	}, nil
+}
+
+// GetAllPermissions - получить все права
+func (c *userClient) GetAllPermissions() ([]*au.Permission, error) {
+	url := fmt.Sprintf("%s/api/v1/permissions/", c.host)
+
+	resp, err := http.Get(url)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get permissions: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode >= 400 {
+		bodyBytes, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("user service returned error: %s", string(bodyBytes))
+	}
+
+	var permissions []*au.Permission
+	if err := json.NewDecoder(resp.Body).Decode(&permissions); err != nil {
+		return nil, fmt.Errorf("failed to decode permissions response: %w", err)
+	}
+
+	return permissions, nil
+}
+
+// GetAllRoles - получить все роли
+func (c *userClient) GetAllRoles() ([]*au.Role, error) {
+	url := fmt.Sprintf("%s/api/v1/roles/", c.host)
+
+	resp, err := http.Get(url)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get roles: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode >= 400 {
+		bodyBytes, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("user service returned error: %s", string(bodyBytes))
+	}
+
+	var roles []*au.Role
+	if err := json.NewDecoder(resp.Body).Decode(&roles); err != nil {
+		return nil, fmt.Errorf("failed to decode roles response: %w", err)
+	}
+
+	return roles, nil
+}
+
+// CreateRole - создать новую роль
+func (c *userClient) CreateRole(req *au.CreateRoleRequest) (*au.Role, error) {
+	url := fmt.Sprintf("%s/api/v1/roles/", c.host)
+
+	reqBody, err := json.Marshal(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to encode request: %w", err)
+	}
+
+	resp, err := http.Post(url, "application/json", bytes.NewBuffer(reqBody))
+	if err != nil {
+		return nil, fmt.Errorf("request to user service failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode >= 400 {
+		bodyBytes, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("user service returned error: %s", string(bodyBytes))
+	}
+
+	var role au.Role
+	if err := json.NewDecoder(resp.Body).Decode(&role); err != nil {
+		return nil, fmt.Errorf("failed to decode role response: %w", err)
+	}
+
+	return &role, nil
 }

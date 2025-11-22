@@ -5,10 +5,11 @@ import (
 	"chatService/internal/custom_errors"
 	"chatService/internal/handlers/dto"
 	"errors"
-	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 	"net/http"
 	"strconv"
+
+	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 type MessageHandler struct {
@@ -19,7 +20,21 @@ func NewMessageHandler(messageController *controllers.MessageController) *Messag
 	return &MessageHandler{messageController}
 }
 
-// SendMessage POST /api/v1/chats/:chat_id/messages
+// SendMessage Отправка сообщения в чат
+// @Summary Отправить сообщение в чат
+// @Description Отправляет новое сообщение в указанный чат с возможностью прикрепления файлов
+// @Tags messages
+// @Accept json
+// @Produce json
+// @Param chat_id path string true "UUID чата"
+// @Param X-User-ID header string true "UUID отправителя"
+// @Param message body dto.CreateMessageDTO true "Данные сообщения"
+// @Success 201 {object} models.Message "Сообщение успешно отправлено"
+// @Failure 400 {object} map[string]interface{} "Некорректный запрос или неверный UUID"
+// @Failure 401 {object} map[string]interface{} "Неверные учетные данные"
+// @Failure 502 {object} map[string]interface{} "Ошибка при обращении к внешнему сервису"
+// @Failure 500 {object} map[string]interface{} "Внутренняя ошибка сервера"
+// @Router /chats/messages/{chat_id} [post]
 func (h *MessageHandler) SendMessage(c *gin.Context) {
 	userIDStr := c.GetHeader("X-User-ID")
 	userID, err := uuid.Parse(userIDStr)
@@ -67,7 +82,18 @@ func (h *MessageHandler) SendMessage(c *gin.Context) {
 	c.JSON(http.StatusCreated, msg)
 }
 
-// GetChatMessages GET /api/v1/chats/:chat_id/messages
+// GetChatMessages Получение сообщений чата
+// @Summary Получить сообщения чата
+// @Description Возвращает список сообщений из указанного чата с пагинацией
+// @Tags messages
+// @Produce json
+// @Param chat_id path string true "UUID чата"
+// @Param offset query int false "Смещение для пагинации" default(0)
+// @Param limit query int false "Количество сообщений на странице" default(20)
+// @Success 200 {array} dto.GetChatMessage "Список сообщений"
+// @Failure 400 {object} map[string]interface{} "Некорректный UUID чата или параметры пагинации"
+// @Failure 500 {object} map[string]interface{} "Внутренняя ошибка сервера"
+// @Router /chats/messages/{chat_id} [get]
 func (h *MessageHandler) GetChatMessages(c *gin.Context) {
 	chatIDStr := c.Param("chat_id")
 	chatID, err := uuid.Parse(chatIDStr)
@@ -107,7 +133,22 @@ func (h *MessageHandler) GetChatMessages(c *gin.Context) {
 	c.JSON(http.StatusOK, messages)
 }
 
-// SearchMessages GET /api/v1/chats/:chat_id/messages/search
+// SearchMessages Поиск сообщений в чате
+// @Summary Поиск сообщений в чате
+// @Description Выполняет поиск сообщений по тексту в указанном чате с пагинацией
+// @Tags messages
+// @Produce json
+// @Param chat_id path string true "UUID чата"
+// @Param X-User-ID header string true "UUID пользователя"
+// @Param query query string true "Поисковый запрос"
+// @Param limit query int false "Количество результатов на странице" default(20)
+// @Param offset query int false "Смещение для пагинации" default(0)
+// @Success 200 {object} dto.GetSearchResponse "Результаты поиска"
+// @Failure 400 {object} map[string]interface{} "Некорректный запрос или пустой поисковый запрос"
+// @Failure 403 {object} map[string]interface{} "Нет доступа к чату"
+// @Failure 404 {object} map[string]interface{} "Чат не найден"
+// @Failure 500 {object} map[string]interface{} "Внутренняя ошибка сервера"
+// @Router /chats/search/{chat_id} [get]
 func (h *MessageHandler) SearchMessages(c *gin.Context) {
 	chatID, err := uuid.Parse(c.Param("chat_id"))
 	if err != nil {

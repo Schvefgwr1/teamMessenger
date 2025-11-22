@@ -1,0 +1,1085 @@
+basePath: /api/v1
+definitions:
+  dto.ChangeRoleRequestGateway:
+    properties:
+      role_id:
+        type: integer
+      user_id:
+        type: string
+    required:
+    - role_id
+    - user_id
+    type: object
+  dto.CreateChatResponse:
+    properties:
+      avatarFileID:
+        type: integer
+      description:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      ownerID:
+        type: string
+      userIDs:
+        items:
+          type: string
+        type: array
+    type: object
+  dto.CreateRoleRequestGateway:
+    properties:
+      description:
+        type: string
+      name:
+        type: string
+      permissionIds:
+        items:
+          type: integer
+        type: array
+    required:
+    - name
+    type: object
+  dto.CreateStatusRequestGateway:
+    properties:
+      name:
+        type: string
+    required:
+    - name
+    type: object
+  dto.LoginSwag:
+    properties:
+      login:
+        type: string
+      password:
+        type: string
+    required:
+    - login
+    - password
+    type: object
+  dto.UpdateChatRequestGateway:
+    properties:
+      addUserIDs:
+        items:
+          type: string
+        type: array
+      avatarFileID:
+        type: integer
+      description:
+        type: string
+      name:
+        type: string
+      removeUserIDs:
+        items:
+          type: string
+        type: array
+    type: object
+externalDocs:
+  description: OpenAPI
+  url: https://swagger.io/resources/open-api/
+host: localhost:8084
+info:
+  contact:
+    email: support@swagger.io
+    name: API Support
+    url: http://www.swagger.io/support
+  description: API сервиса
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  termsOfService: http://swagger.io/terms/
+  title: Service API
+  version: "1.0"
+paths:
+  /auth/login:
+    post:
+      consumes:
+      - application/json
+      description: Выполняет аутентификацию пользователя и возвращает JWT токен
+      parameters:
+      - description: Данные для входа
+        in: body
+        name: login
+        required: true
+        schema:
+          $ref: '#/definitions/dto.LoginSwag'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Успешная аутентификация" example({"token":"eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...","userID":"00000000-0000-0000-0000-000000000000"})
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Некорректный запрос
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Неверные учетные данные
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Войти в систему
+      tags:
+      - auth
+  /auth/logout:
+    post:
+      description: Отзывает текущую сессию пользователя
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Успешный выход" example({"message":"Logged out successfully"})
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Пользователь не аутентифицирован
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Выйти из системы
+      tags:
+      - auth
+  /auth/register:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Регистрирует нового пользователя с возможностью загрузки аватара
+      parameters:
+      - description: JSON данные пользователя
+        example: '{"username":"user","email":"user@example.com","password":"password123","age":25,"roleID":1}'
+        in: formData
+        name: data
+        required: true
+        type: string
+      - description: Аватар пользователя
+        in: formData
+        name: file
+        type: file
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Пользователь успешно зарегистрирован
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Некорректный запрос
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Зарегистрировать нового пользователя
+      tags:
+      - auth
+  /chats:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Создает новый чат с указанными параметрами и участниками
+      parameters:
+      - description: Название чата
+        in: formData
+        name: name
+        required: true
+        type: string
+      - description: Описание чата
+        in: formData
+        name: description
+        type: string
+      - description: UUID владельца чата
+        in: formData
+        name: ownerID
+        required: true
+        type: string
+      - collectionFormat: csv
+        description: UUID участников чата
+        in: formData
+        items:
+          type: string
+        name: userIDs
+        required: true
+        type: array
+      - description: Аватар чата
+        in: formData
+        name: avatar
+        type: file
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Чат успешно создан
+          schema:
+            $ref: '#/definitions/dto.CreateChatResponse'
+        "400":
+          description: Некорректный запрос или неверный формат UUID
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Создать новый чат
+      tags:
+      - chats
+  /chats/{chat_id}:
+    delete:
+      description: Удаляет чат и все связанные данные
+      parameters:
+      - description: UUID чата
+        in: path
+        name: chat_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Чат успешно удален
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Некорректный UUID чата
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Пользователь не аутентифицирован
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Удалить чат
+      tags:
+      - chats
+    put:
+      consumes:
+      - application/json
+      description: Обновляет параметры чата, включая добавление/удаление участников
+      parameters:
+      - description: UUID чата
+        in: path
+        name: chat_id
+        required: true
+        type: string
+      - description: Параметры обновления
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateChatRequestGateway'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Чат успешно обновлен
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Некорректный запрос или неверный UUID
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Пользователь не аутентифицирован
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Обновить чат
+      tags:
+      - chats
+  /chats/{chat_id}/ban/{user_id}:
+    post:
+      description: Блокирует пользователя, запрещая ему доступ к чату
+      parameters:
+      - description: UUID чата
+        in: path
+        name: chat_id
+        required: true
+        type: string
+      - description: UUID пользователя
+        in: path
+        name: user_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Пользователь успешно заблокирован
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Некорректный UUID чата или пользователя
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Пользователь не аутентифицирован
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Заблокировать пользователя в чате
+      tags:
+      - chats
+  /chats/{chat_id}/roles/change:
+    patch:
+      consumes:
+      - application/json
+      description: Назначает новую роль пользователю в указанном чате
+      parameters:
+      - description: UUID чата
+        in: path
+        name: chat_id
+        required: true
+        type: string
+      - description: Данные для изменения роли
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.ChangeRoleRequestGateway'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Роль пользователя успешно изменена
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Некорректный запрос или неверный UUID
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Пользователь не аутентифицирован
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Изменить роль пользователя в чате
+      tags:
+      - chats
+  /chats/{user_id}:
+    get:
+      description: Возвращает список всех чатов, в которых участвует указанный пользователь
+      parameters:
+      - description: UUID пользователя
+        in: path
+        name: user_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Список чатов пользователя
+          schema:
+            items:
+              additionalProperties: true
+              type: object
+            type: array
+        "400":
+          description: Некорректный UUID пользователя
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Получить список чатов пользователя
+      tags:
+      - chats
+  /chats/messages/{chat_id}:
+    get:
+      description: Возвращает список сообщений из указанного чата с пагинацией
+      parameters:
+      - description: UUID чата
+        in: path
+        name: chat_id
+        required: true
+        type: string
+      - default: 0
+        description: Смещение для пагинации
+        in: query
+        name: offset
+        type: integer
+      - default: 20
+        description: Количество сообщений на странице
+        in: query
+        maximum: 100
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Список сообщений
+          schema:
+            items:
+              additionalProperties: true
+              type: object
+            type: array
+        "400":
+          description: Некорректный UUID чата или параметры пагинации
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Пользователь не аутентифицирован
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Получить сообщения чата
+      tags:
+      - chats
+    post:
+      consumes:
+      - multipart/form-data
+      description: Отправляет новое сообщение в указанный чат с возможностью прикрепления
+        файлов
+      parameters:
+      - description: UUID чата
+        in: path
+        name: chat_id
+        required: true
+        type: string
+      - description: Текст сообщения
+        in: formData
+        name: content
+        required: true
+        type: string
+      - collectionFormat: csv
+        description: Прикрепленные файлы
+        in: formData
+        items:
+          type: file
+        name: files
+        type: array
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Сообщение успешно отправлено
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Некорректный запрос или неверный UUID чата
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Пользователь не аутентифицирован
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Отправить сообщение в чат
+      tags:
+      - chats
+  /chats/search/{chat_id}:
+    get:
+      description: Выполняет поиск сообщений по тексту в указанном чате с пагинацией
+      parameters:
+      - description: UUID чата
+        in: path
+        name: chat_id
+        required: true
+        type: string
+      - description: Поисковый запрос
+        in: query
+        name: query
+        required: true
+        type: string
+      - default: 0
+        description: Смещение для пагинации
+        in: query
+        name: offset
+        type: integer
+      - default: 20
+        description: Количество результатов на странице
+        in: query
+        maximum: 100
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Результаты поиска
+          schema:
+            items:
+              additionalProperties: true
+              type: object
+            type: array
+        "400":
+          description: Некорректный запрос или пустой поисковый запрос
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Пользователь не аутентифицирован
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Поиск сообщений в чате
+      tags:
+      - chats
+  /permissions:
+    get:
+      description: Возвращает список всех доступных разрешений в системе
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Список разрешений
+          schema:
+            items:
+              additionalProperties: true
+              type: object
+            type: array
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Получить все разрешения
+      tags:
+      - users
+  /roles:
+    get:
+      description: Возвращает список всех доступных ролей в системе с их разрешениями
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Список ролей
+          schema:
+            items:
+              additionalProperties: true
+              type: object
+            type: array
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Получить все роли
+      tags:
+      - users
+    post:
+      consumes:
+      - application/json
+      description: Создает новую роль с указанными разрешениями
+      parameters:
+      - description: Данные для создания роли
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateRoleRequestGateway'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Роль успешно создана
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Некорректный запрос
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Создать новую роль
+      tags:
+      - users
+  /tasks:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Создает новую задачу с указанными параметрами, исполнителем и прикрепленными
+        файлами
+      parameters:
+      - description: Название задачи
+        in: formData
+        name: title
+        required: true
+        type: string
+      - description: Описание задачи
+        in: formData
+        name: description
+        type: string
+      - description: UUID исполнителя задачи
+        in: formData
+        name: executor_id
+        type: string
+      - description: UUID чата, связанного с задачей
+        in: formData
+        name: chat_id
+        type: string
+      - collectionFormat: csv
+        description: Прикрепленные файлы
+        in: formData
+        items:
+          type: file
+        name: files
+        type: array
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Задача успешно создана
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Некорректный запрос
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Пользователь не аутентифицирован
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Создать новую задачу
+      tags:
+      - tasks
+  /tasks/{task_id}:
+    get:
+      description: Возвращает информацию о задаче и прикрепленных файлах по ID
+      parameters:
+      - description: ID задачи
+        in: path
+        name: task_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Информация о задаче
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Некорректный ID задачи
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Получить задачу по ID
+      tags:
+      - tasks
+  /tasks/{task_id}/status/{status_id}:
+    patch:
+      description: Изменяет статус задачи на указанный
+      parameters:
+      - description: ID задачи
+        in: path
+        name: task_id
+        required: true
+        type: integer
+      - description: ID статуса
+        in: path
+        name: status_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Статус задачи успешно обновлен
+        "400":
+          description: Некорректный ID задачи или статуса
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Обновить статус задачи
+      tags:
+      - tasks
+  /tasks/statuses:
+    get:
+      description: Возвращает список всех доступных статусов задач
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Список статусов задач
+          schema:
+            items:
+              additionalProperties: true
+              type: object
+            type: array
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Получить все статусы задач
+      tags:
+      - tasks
+    post:
+      consumes:
+      - application/json
+      description: Создает новый статус задачи с указанным названием
+      parameters:
+      - description: Данные для создания статуса
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateStatusRequestGateway'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Статус успешно создан
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Некорректный запрос
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Создать новый статус задачи
+      tags:
+      - tasks
+  /tasks/statuses/{status_id}:
+    delete:
+      description: Удаляет статус задачи по ID
+      parameters:
+      - description: ID статуса
+        in: path
+        name: status_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Статус успешно удален
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Некорректный ID статуса
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Удалить статус задачи
+      tags:
+      - tasks
+    get:
+      description: Возвращает информацию о статусе задачи по ID
+      parameters:
+      - description: ID статуса
+        in: path
+        name: status_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Информация о статусе
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Некорректный ID статуса
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Получить статус задачи по ID
+      tags:
+      - tasks
+  /users/{user_id}:
+    get:
+      description: Возвращает информацию о пользователе по указанному ID
+      parameters:
+      - description: UUID пользователя
+        in: path
+        name: user_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Информация о пользователе
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Некорректный UUID пользователя
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Получить профиль пользователя по ID
+      tags:
+      - users
+  /users/{user_id}/tasks:
+    get:
+      description: Возвращает список задач указанного пользователя с пагинацией
+      parameters:
+      - description: UUID пользователя
+        in: path
+        name: user_id
+        required: true
+        type: string
+      - default: 20
+        description: Количество задач на странице
+        in: query
+        maximum: 100
+        name: limit
+        type: integer
+      - default: 0
+        description: Смещение для пагинации
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Список задач пользователя
+          schema:
+            items:
+              additionalProperties: true
+              type: object
+            type: array
+        "400":
+          description: Некорректный UUID пользователя или параметры пагинации
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Получить список задач пользователя
+      tags:
+      - tasks
+  /users/me:
+    get:
+      description: Возвращает информацию о текущем аутентифицированном пользователе
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Информация о пользователе
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Некорректный запрос
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Получить информацию о текущем пользователе
+      tags:
+      - users
+    put:
+      consumes:
+      - multipart/form-data
+      description: Обновляет данные текущего пользователя с возможностью загрузки
+        нового аватара
+      parameters:
+      - description: JSON данные для обновления
+        example: '{"username":"newusername","age":26}'
+        in: formData
+        name: data
+        required: true
+        type: string
+      - description: Новый аватар пользователя
+        in: formData
+        name: file
+        type: file
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Пользователь успешно обновлен
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Некорректный запрос
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Обновить информацию о текущем пользователе
+      tags:
+      - users
+schemes:
+- http
+swagger: "2.0"
+tags:
+- description: Регистрация и аутентификация
+  name: auth
+- description: Операции с пользователем
+  name: users
+- description: Операции с чатами
+  name: chats
+- description: Операции с задачами
+  name: tasks

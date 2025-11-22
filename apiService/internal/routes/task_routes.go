@@ -13,6 +13,12 @@ func RegisterTaskRoutes(router *gin.Engine, taskHandler *handlers.TaskHandler, p
 		tasks.POST("", taskHandler.CreateTask)
 		tasks.PATCH("/:task_id/status/:status_id", taskHandler.UpdateTaskStatus)
 		tasks.GET("/:task_id", taskHandler.GetTaskByID)
+
+		// Статусы задач
+		tasks.GET("/statuses", taskHandler.GetAllStatuses)
+		tasks.POST("/statuses", taskHandler.CreateStatus)
+		tasks.GET("/statuses/:status_id", taskHandler.GetStatusByID)
+		tasks.DELETE("/statuses/:status_id", taskHandler.DeleteStatus)
 	}
 
 	users := router.Group("api/v1/users").Use(middlewares.JWTMiddlewareWithKeyManager(publicKeyManager, sessionService))

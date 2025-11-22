@@ -1,0 +1,531 @@
+basePath: /api/v1
+definitions:
+  dto.ChatResponse:
+    properties:
+      avatarFileID:
+        type: integer
+      createdAt:
+        type: string
+      description:
+        type: string
+      id:
+        type: string
+      isGroup:
+        type: boolean
+      name:
+        type: string
+    type: object
+  dto.CreateChatDTO:
+    properties:
+      avatarFileID:
+        type: integer
+      description:
+        type: string
+      name:
+        type: string
+      ownerID:
+        type: string
+      userIDs:
+        items:
+          type: string
+        type: array
+    type: object
+  dto.CreateMessageDTO:
+    properties:
+      content:
+        type: string
+      fileIDs:
+        items:
+          type: integer
+        type: array
+    required:
+    - content
+    type: object
+  dto.FileSwagger:
+    properties:
+      created_at:
+        type: string
+      file_type: {}
+      file_type_id:
+        type: integer
+      id:
+        type: integer
+      name:
+        type: string
+      url:
+        type: string
+    type: object
+  dto.GetChatMessage:
+    properties:
+      chatID:
+        type: string
+      content:
+        type: string
+      createdAt:
+        type: string
+      files:
+        description: Эта часть будет видна Swagger
+        items:
+          $ref: '#/definitions/dto.FileSwagger'
+        type: array
+      id:
+        type: string
+      senderID:
+        type: string
+      updatedAt:
+        type: string
+    type: object
+  dto.GetSearchResponse:
+    properties:
+      messages:
+        items:
+          $ref: '#/definitions/dto.GetChatMessage'
+        type: array
+      total:
+        type: integer
+    type: object
+  dto.UpdateChatDTO:
+    properties:
+      addUserIDs:
+        items:
+          type: string
+        type: array
+      avatarFileID:
+        type: integer
+      description:
+        type: string
+      name:
+        type: string
+      removeUserIDs:
+        items:
+          type: string
+        type: array
+    type: object
+  dto.UpdateChatResponse:
+    properties:
+      chat:
+        $ref: '#/definitions/dto.ChatResponse'
+      updateUsers:
+        items:
+          $ref: '#/definitions/dto.UpdateUser'
+        type: array
+    type: object
+  dto.UpdateUser:
+    properties:
+      state:
+        type: string
+      userID:
+        type: string
+    type: object
+  models.Message:
+    properties:
+      chatID:
+        type: string
+      content:
+        type: string
+      createdAt:
+        type: string
+      files:
+        items:
+          $ref: '#/definitions/models.MessageFile'
+        type: array
+      id:
+        type: string
+      senderID:
+        type: string
+      updatedAt:
+        type: string
+    type: object
+  models.MessageFile:
+    properties:
+      fileID:
+        type: integer
+      messageID:
+        type: string
+    type: object
+externalDocs:
+  description: OpenAPI
+  url: https://swagger.io/resources/open-api/
+host: localhost:8082
+info:
+  contact:
+    email: support@swagger.io
+    name: API Support
+    url: http://www.swagger.io/support
+  description: API сервиса для работы с чатами
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  termsOfService: http://swagger.io/terms/
+  title: Chat Service API
+  version: "1.0"
+paths:
+  /chats:
+    post:
+      consumes:
+      - application/json
+      description: Создает новый чат с указанными параметрами и участниками
+      parameters:
+      - description: Данные для создания чата
+        in: body
+        name: chat
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateChatDTO'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Чат успешно создан
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Некорректный запрос или неверные учетные данные
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Файл не найден
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties: true
+            type: object
+        "502":
+          description: Ошибка при обращении к внешнему сервису
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Создать новый чат
+      tags:
+      - chats
+  /chats/{chat_id}:
+    delete:
+      description: Удаляет чат по указанному ID
+      parameters:
+      - description: UUID чата
+        in: path
+        name: chat_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: Чат успешно удален
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Удалить чат
+      tags:
+      - chats
+    put:
+      consumes:
+      - application/json
+      description: 'Обновляет данные чата: название, описание, аватар, список участников'
+      parameters:
+      - description: UUID чата
+        in: path
+        name: chat_id
+        required: true
+        type: string
+      - description: Данные для обновления чата
+        in: body
+        name: chat
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateChatDTO'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Чат успешно обновлен
+          schema:
+            $ref: '#/definitions/dto.UpdateChatResponse'
+        "400":
+          description: Некорректный запрос или неверные учетные данные
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Файл не найден
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties: true
+            type: object
+        "502":
+          description: Ошибка при обращении к внешнему сервису
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Обновить информацию о чате
+      tags:
+      - chats
+  /chats/{chat_id}/ban/{user_id}:
+    post:
+      description: Блокирует указанного пользователя в чате
+      parameters:
+      - description: UUID чата
+        in: path
+        name: chat_id
+        required: true
+        type: string
+      - description: UUID пользователя
+        in: path
+        name: user_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Пользователь успешно заблокирован
+        "400":
+          description: Некорректный UUID чата или пользователя
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Заблокировать пользователя в чате
+      tags:
+      - chats
+  /chats/{chat_id}/roles/change:
+    patch:
+      consumes:
+      - application/json
+      description: Изменяет роль пользователя в указанном чате
+      parameters:
+      - description: UUID чата
+        in: path
+        name: chat_id
+        required: true
+        type: string
+      - description: Данные для изменения роли
+        in: body
+        name: request
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Роль успешно изменена
+        "400":
+          description: Некорректный запрос
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Изменение роли пользователя в чате
+      tags:
+      - chats
+  /chats/{user_id}:
+    get:
+      description: Возвращает список всех чатов, в которых участвует указанный пользователь
+      parameters:
+      - description: UUID пользователя
+        in: path
+        name: user_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Список чатов пользователя
+          schema:
+            items:
+              $ref: '#/definitions/dto.ChatResponse'
+            type: array
+        "400":
+          description: Некорректный UUID пользователя
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Получить список чатов пользователя
+      tags:
+      - chats
+  /chats/messages/{chat_id}:
+    get:
+      description: Возвращает список сообщений из указанного чата с пагинацией
+      parameters:
+      - description: UUID чата
+        in: path
+        name: chat_id
+        required: true
+        type: string
+      - default: 0
+        description: Смещение для пагинации
+        in: query
+        name: offset
+        type: integer
+      - default: 20
+        description: Количество сообщений на странице
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Список сообщений
+          schema:
+            items:
+              $ref: '#/definitions/dto.GetChatMessage'
+            type: array
+        "400":
+          description: Некорректный UUID чата или параметры пагинации
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Получить сообщения чата
+      tags:
+      - messages
+    post:
+      consumes:
+      - application/json
+      description: Отправляет новое сообщение в указанный чат с возможностью прикрепления
+        файлов
+      parameters:
+      - description: UUID чата
+        in: path
+        name: chat_id
+        required: true
+        type: string
+      - description: UUID отправителя
+        in: header
+        name: X-User-ID
+        required: true
+        type: string
+      - description: Данные сообщения
+        in: body
+        name: message
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateMessageDTO'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Сообщение успешно отправлено
+          schema:
+            $ref: '#/definitions/models.Message'
+        "400":
+          description: Некорректный запрос или неверный UUID
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Неверные учетные данные
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties: true
+            type: object
+        "502":
+          description: Ошибка при обращении к внешнему сервису
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Отправить сообщение в чат
+      tags:
+      - messages
+  /chats/search/{chat_id}:
+    get:
+      description: Выполняет поиск сообщений по тексту в указанном чате с пагинацией
+      parameters:
+      - description: UUID чата
+        in: path
+        name: chat_id
+        required: true
+        type: string
+      - description: UUID пользователя
+        in: header
+        name: X-User-ID
+        required: true
+        type: string
+      - description: Поисковый запрос
+        in: query
+        name: query
+        required: true
+        type: string
+      - default: 20
+        description: Количество результатов на странице
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: Смещение для пагинации
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Результаты поиска
+          schema:
+            $ref: '#/definitions/dto.GetSearchResponse'
+        "400":
+          description: Некорректный запрос или пустой поисковый запрос
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: Нет доступа к чату
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Чат не найден
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Поиск сообщений в чате
+      tags:
+      - messages
+schemes:
+- http
+swagger: "2.0"
+tags:
+- description: Операции с чатами
+  name: chats
+- description: Операции с сообщениями
+  name: messages

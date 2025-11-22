@@ -1,0 +1,372 @@
+basePath: /api/v1
+definitions:
+  dto.CreateTaskDTO:
+    properties:
+      chat_id:
+        type: string
+      creator_id:
+        type: string
+      description:
+        type: string
+      executor_id:
+        type: string
+      file_ids:
+        items:
+          type: integer
+        type: array
+      title:
+        type: string
+    required:
+    - creator_id
+    - title
+    type: object
+  dto.FileSwagger:
+    properties:
+      created_at:
+        type: string
+      file_type: {}
+      file_type_id:
+        type: integer
+      id:
+        type: integer
+      name:
+        type: string
+      url:
+        type: string
+    type: object
+  dto.TaskResponse:
+    properties:
+      files:
+        description: Эта часть будет видна Swagger
+        items:
+          $ref: '#/definitions/dto.FileSwagger'
+        type: array
+      task:
+        $ref: '#/definitions/models.Task'
+    type: object
+  dto.TaskToList:
+    properties:
+      id:
+        type: integer
+      status:
+        type: string
+      title:
+        type: string
+    type: object
+  handlers.CreateStatusDTO:
+    properties:
+      name:
+        type: string
+    required:
+    - name
+    type: object
+  models.Task:
+    properties:
+      chatID:
+        type: string
+      createdAt:
+        type: string
+      creatorID:
+        type: string
+      description:
+        type: string
+      executorID:
+        type: string
+      files:
+        items:
+          $ref: '#/definitions/models.TaskFile'
+        type: array
+      id:
+        type: integer
+      status:
+        $ref: '#/definitions/models.TaskStatus'
+      statusID:
+        type: integer
+      title:
+        type: string
+    type: object
+  models.TaskFile:
+    properties:
+      fileID:
+        type: integer
+      taskID:
+        type: integer
+    type: object
+  models.TaskStatus:
+    properties:
+      id:
+        type: integer
+      name:
+        type: string
+    type: object
+externalDocs:
+  description: OpenAPI
+  url: https://swagger.io/resources/open-api/
+host: localhost:8082
+info:
+  contact:
+    email: support@swagger.io
+    name: API Support
+    url: http://www.swagger.io/support
+  description: API сервиса для работы с задачами
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  termsOfService: http://swagger.io/terms/
+  title: Task Service API
+  version: "1.0"
+paths:
+  /tasks:
+    post:
+      consumes:
+      - application/json
+      description: Создает новую задачу с указанными параметрами, исполнителем и прикрепленными
+        файлами
+      parameters:
+      - description: Данные для создания задачи
+        in: body
+        name: task
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateTaskDTO'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Задача успешно создана
+          schema:
+            $ref: '#/definitions/models.Task'
+        "400":
+          description: Некорректный запрос или статус не найден
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties: true
+            type: object
+        "502":
+          description: Ошибка при обращении к внешнему сервису
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Создать новую задачу
+      tags:
+      - tasks
+  /tasks/{task_id}:
+    get:
+      description: Возвращает информацию о задаче и прикрепленных файлах по ID
+      parameters:
+      - description: ID задачи
+        in: path
+        name: task_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Информация о задаче
+          schema:
+            $ref: '#/definitions/dto.TaskResponse'
+        "400":
+          description: Некорректный ID задачи
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties: true
+            type: object
+        "502":
+          description: Ошибка при обращении к сервису файлов
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Получить задачу по ID
+      tags:
+      - tasks
+  /tasks/{task_id}/status/{status_id}:
+    patch:
+      description: Изменяет статус задачи на указанный
+      parameters:
+      - description: ID задачи
+        in: path
+        name: task_id
+        required: true
+        type: integer
+      - description: ID статуса
+        in: path
+        name: status_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Статус задачи успешно обновлен
+        "400":
+          description: Некорректный ID задачи или статуса, или статус/задача не найдены
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Обновить статус задачи
+      tags:
+      - tasks
+  /tasks/statuses:
+    get:
+      description: Возвращает список всех доступных статусов задач
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Список статусов задач
+          schema:
+            items:
+              $ref: '#/definitions/models.TaskStatus'
+            type: array
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Получить все статусы задач
+      tags:
+      - task-statuses
+    post:
+      consumes:
+      - application/json
+      description: Создает новый статус задачи с указанным названием
+      parameters:
+      - description: Данные для создания статуса
+        in: body
+        name: status
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.CreateStatusDTO'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Статус успешно создан
+          schema:
+            $ref: '#/definitions/models.TaskStatus'
+        "400":
+          description: Некорректный запрос или статус уже существует
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Создать новый статус задачи
+      tags:
+      - task-statuses
+  /tasks/statuses/{id}:
+    delete:
+      description: Удаляет статус задачи по его ID
+      parameters:
+      - description: ID статуса
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: Статус успешно удален
+        "400":
+          description: Некорректный ID
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Удалить статус задачи
+      tags:
+      - task-statuses
+    get:
+      description: Возвращает информацию о статусе задачи по его ID
+      parameters:
+      - description: ID статуса
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Информация о статусе
+          schema:
+            $ref: '#/definitions/models.TaskStatus'
+        "400":
+          description: Некорректный ID
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Статус не найден
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Получить статус задачи по ID
+      tags:
+      - task-statuses
+  /users/{user_id}/tasks:
+    get:
+      description: Возвращает список задач указанного пользователя с пагинацией
+      parameters:
+      - description: UUID пользователя
+        in: path
+        name: user_id
+        required: true
+        type: string
+      - default: 20
+        description: Количество задач на странице
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: Смещение для пагинации
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Список задач пользователя
+          schema:
+            items:
+              $ref: '#/definitions/dto.TaskToList'
+            type: array
+        "400":
+          description: Некорректный UUID пользователя или параметры пагинации
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Получить список задач пользователя
+      tags:
+      - tasks
+schemes:
+- http
+swagger: "2.0"
+tags:
+- description: Операции с задачами
+  name: tasks
+- description: Операции со статусами задач
+  name: task-statuses

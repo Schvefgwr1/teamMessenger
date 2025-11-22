@@ -16,6 +16,10 @@ type ChatClient interface {
 	SendMessage(chatID uuid.UUID, senderID uuid.UUID, req *ac.CreateMessageRequest) (*ac.MessageResponse, error)
 	GetChatMessages(chatID uuid.UUID, userID uuid.UUID, offset, limit int) ([]*ac.GetChatMessage, error)
 	SearchMessages(userID uuid.UUID, chatID uuid.UUID, query string, offset, limit int) (*ac.GetSearchResponse, error)
+	UpdateChat(chatID uuid.UUID, updateReq *ac.UpdateChatRequest) (*ac.UpdateChatResponse, error)
+	DeleteChat(chatID uuid.UUID) error
+	BanUser(chatID, userID uuid.UUID) error
+	ChangeUserRole(chatID uuid.UUID, changeRoleReq *ac.ChangeRoleRequest) error
 }
 
 type chatClient struct {
@@ -166,4 +170,119 @@ func (c *chatClient) SearchMessages(userID uuid.UUID, chatID uuid.UUID, query st
 	}
 
 	return messages, nil
+}
+
+// UpdateChat - обновление чата
+func (c *chatClient) UpdateChat(chatID uuid.UUID, updateReq *ac.UpdateChatRequest) (*ac.UpdateChatResponse, error) {
+	url := fmt.Sprintf("%s/api/v1/chats/%s", c.host, chatID.String())
+
+	reqBody, err := json.Marshal(updateReq)
+	if err != nil {
+		return nil, fmt.Errorf("failed to encode request: %w", err)
+	}
+
+	httpReq, err := http.NewRequest(http.MethodPut, url, bytes.NewBuffer(reqBody))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	httpReq.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{}
+	resp, err := client.Do(httpReq)
+	if err != nil {
+		return nil, fmt.Errorf("request to chat service failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode >= 400 {
+		bodyBytes, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("chat service returned error: %s", string(bodyBytes))
+	}
+
+	var result ac.UpdateChatResponse
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	return &result, nil
+}
+
+// DeleteChat - удаление чата
+func (c *chatClient) DeleteChat(chatID uuid.UUID) error {
+	url := fmt.Sprintf("%s/api/v1/chats/%s", c.host, chatID.String())
+
+	httpReq, err := http.NewRequest(http.MethodDelete, url, nil)
+	if err != nil {
+		return fmt.Errorf("failed to create request: %w", err)
+	}
+
+	client := &http.Client{}
+	resp, err := client.Do(httpReq)
+	if err != nil {
+		return fmt.Errorf("request to chat service failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusNoContent && resp.StatusCode != http.StatusOK {
+		bodyBytes, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("chat service returned error: status %d, body: %s", resp.StatusCode, string(bodyBytes))
+	}
+
+	return nil
+}
+
+// BanUser - блокировка пользователя в чате
+func (c *chatClient) BanUser(chatID, userID uuid.UUID) error {
+	url := fmt.Sprintf("%s/api/v1/chats/%s/ban/%s", c.host, chatID.String(), userID.String())
+
+	httpReq, err := http.NewRequest(http.MethodPost, url, nil)
+	if err != nil {
+		return fmt.Errorf("failed to create request: %w", err)
+	}
+
+	client := &http.Client{}
+	resp, err := client.Do(httpReq)
+	if err != nil {
+		return fmt.Errorf("request to chat service failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		bodyBytes, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("chat service returned error: status %d, body: %s", resp.StatusCode, string(bodyBytes))
+	}
+
+	return nil
+}
+
+// ChangeUserRole - изменение роли пользователя в чате
+func (c *chatClient) ChangeUserRole(chatID uuid.UUID, changeRoleReq *ac.ChangeRoleRequest) error {
+	url := fmt.Sprintf("%s/api/v1/chats/%s/roles/change", c.host, chatID.String())
+
+	reqBody, err := json.Marshal(changeRoleReq)
+	if err != nil {
+		return fmt.Errorf("failed to encode request: %w", err)
+	}
+
+	httpReq, err := http.NewRequest(http.MethodPatch, url, bytes.NewBuffer(reqBody))
+	if err != nil {
+		return fmt.Errorf("failed to create request: %w", err)
+	}
+
+	httpReq.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{}
+	resp, err := client.Do(httpReq)
+	if err != nil {
+		return fmt.Errorf("request to chat service failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		bodyBytes, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("chat service returned error: status %d, body: %s", resp.StatusCode, string(bodyBytes))
+	}
+
+	return nil
 }

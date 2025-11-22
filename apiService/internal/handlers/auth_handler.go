@@ -9,10 +9,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 	"net/http"
 	"time"
+
+	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 type AuthHandler struct {
@@ -27,6 +28,18 @@ func NewAuthHandler(authController *controllers.AuthController, sessionService *
 	}
 }
 
+// Register Регистрация нового пользователя
+// @Summary Зарегистрировать нового пользователя
+// @Description Регистрирует нового пользователя с возможностью загрузки аватара
+// @Tags auth
+// @Accept multipart/form-data
+// @Produce json
+// @Param data formData string true "JSON данные пользователя" example({"username":"user","email":"user@example.com","password":"password123","age":25,"roleID":1})
+// @Param file formData file false "Аватар пользователя"
+// @Success 201 {object} map[string]interface{} "Пользователь успешно зарегистрирован"
+// @Failure 400 {object} map[string]interface{} "Некорректный запрос"
+// @Failure 500 {object} map[string]interface{} "Внутренняя ошибка сервера"
+// @Router /auth/register [post]
 func (h *AuthHandler) Register(c *gin.Context) {
 	var registerData dto.RegisterUserRequestGateway
 
@@ -53,6 +66,18 @@ func (h *AuthHandler) Register(c *gin.Context) {
 	c.JSON(http.StatusCreated, userResponse)
 }
 
+// Login Аутентификация пользователя
+// @Summary Войти в систему
+// @Description Выполняет аутентификацию пользователя и возвращает JWT токен
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param login body dto.LoginSwag true "Данные для входа"
+// @Success 200 {object} map[string]interface{} "Успешная аутентификация" example({"token":"eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...","userID":"00000000-0000-0000-0000-000000000000"})
+// @Failure 400 {object} map[string]interface{} "Некорректный запрос"
+// @Failure 401 {object} map[string]interface{} "Неверные учетные данные"
+// @Failure 500 {object} map[string]interface{} "Внутренняя ошибка сервера"
+// @Router /auth/login [post]
 func (h *AuthHandler) Login(c *gin.Context) {
 	var loginData au.Login
 
@@ -84,7 +109,16 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"token": token, "userID": userID})
 }
 
-// Logout отзывает текущую сессию
+// Logout Выход из системы
+// @Summary Выйти из системы
+// @Description Отзывает текущую сессию пользователя
+// @Tags auth
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} map[string]interface{} "Успешный выход" example({"message":"Logged out successfully"})
+// @Failure 401 {object} map[string]interface{} "Пользователь не аутентифицирован"
+// @Failure 500 {object} map[string]interface{} "Внутренняя ошибка сервера"
+// @Router /auth/logout [post]
 func (h *AuthHandler) Logout(c *gin.Context) {
 	if h.sessionService == nil {
 		c.JSON(http.StatusOK, gin.H{"message": "Logged out successfully"})

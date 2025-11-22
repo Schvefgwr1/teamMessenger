@@ -7,10 +7,11 @@ import (
 	au "common/contracts/api-user"
 	"context"
 	"errors"
-	"github.com/google/uuid"
 	"log"
 	"mime/multipart"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 type UserController struct {
@@ -99,4 +100,102 @@ func (ctrl *UserController) UpdateUser(id uuid.UUID, userRequest *dto.UpdateUser
 	}
 
 	return updateResponse, nil
+}
+
+// GetAllPermissions - получить все разрешения с кешированием
+func (ctrl *UserController) GetAllPermissions() ([]*au.Permission, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	// Пытаемся получить из кеша
+	cacheKey := "permissions:all"
+	var cachedPermissions []*au.Permission
+	err := ctrl.cacheService.Get(ctx, cacheKey, &cachedPermissions)
+	if err == nil {
+		log.Printf("Permissions found in cache")
+		return cachedPermissions, nil
+	}
+
+	// Получаем из сервиса
+	permissions, err := ctrl.userClient.GetAllPermissions()
+	if err != nil {
+		return nil, err
+	}
+
+	// Сохраняем в кеш на 1 час (разрешения меняются редко)
+	if err := ctrl.cacheService.Set(ctx, cacheKey, permissions, time.Hour); err != nil {
+		log.Printf("Failed to cache permissions: %v", err)
+	}
+
+	return permissions, nil
+}
+
+// GetAllRoles - получить все роли с кешированием
+func (ctrl *UserController) GetAllRoles() ([]*au.Role, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	// Пытаемся получить из кеша
+	cacheKey := "roles:all"
+	var cachedRoles []*au.Role
+	err := ctrl.cacheService.Get(ctx, cacheKey, &cachedRoles)
+	if err == nil {
+		log.Printf("Roles found in cache")
+		return cachedRoles, nil
+	}
+
+	// Получаем из сервиса
+	roles, err := ctrl.userClient.GetAllRoles()
+	if err != nil {
+		return nil, err
+	}
+
+	// Сохраняем в кеш на 1 час (роли меняются редко)
+	if err := ctrl.cacheService.Set(ctx, cacheKey, roles, time.Hour); err != nil {
+		log.Printf("Failed to cache roles: %v", err)
+	}
+
+	return roles, nil
+}
+
+// CreateRole - создать новую роль с инвалидацией кеша
+func (ctrl *UserController) CreateRole(req *au.CreateRoleRequest) (*au.Role, error) {
+	role, err := ctrl.userClient.CreateRole(req)
+	if err != nil {
+		return nil, err
+	}
+
+	// Инвалидация кеша списка ролей
+	ctx := context.Background()
+	cacheKey := "roles:all"
+	_ = ctrl.cacheService.Delete(ctx, cacheKey)
+
+	return role, nil
+}
+
+// GetUserProfileByID - получить профиль пользователя по ID с кешированием
+func (ctrl *UserController) GetUserProfileByID(userID uuid.UUID) (*au.GetUserResponse, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	// Пытаемся получить из кеша
+	var cachedUser au.GetUserResponse
+	err := ctrl.cacheService.GetUserCache(ctx, userID.String(), &cachedUser)
+	if err == nil {
+		log.Printf("User profile %s found in cache", userID.String())
+		return &cachedUser, nil
+	}
+
+	// Получаем из сервиса
+	userProfile, err := ctrl.userClient.GetUserByID(userID.String())
+	if err != nil {
+		return nil, err
+	}
+
+	// Сохраняем в кеш
+	if err := ctrl.cacheService.SetUserCache(ctx, userID.String(), userProfile); err != nil {
+		log.Printf("Failed to cache user profile %s: %v", userID.String(), err)
+	}
+
+	return userProfile, nil
 }

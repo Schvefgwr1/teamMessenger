@@ -58,3 +58,8 @@ type TaskServiceResponse struct {
 	Task  *TaskResponse `json:"task"`
 	Files *[]fc.File    `json:"files"`
 }
+
+// CreateStatusRequest - запрос на создание статуса задачи
+type CreateStatusRequest struct {
+	Name string `json:"name" binding:"required"`
+}

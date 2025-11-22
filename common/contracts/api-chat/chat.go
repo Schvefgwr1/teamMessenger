@@ -61,3 +61,30 @@ type CreateMessageRequest struct {
 type CreateChatServiceResponse struct {
 	ChatID uuid.UUID `json:"chat_id"`
 }
+
+// UpdateChatRequest - запрос на обновление чата
+type UpdateChatRequest struct {
+	Name          *string     `json:"name,omitempty"`
+	Description   *string     `json:"description,omitempty"`
+	AvatarFileID  *int        `json:"avatarFileID,omitempty"`
+	AddUserIDs    []uuid.UUID `json:"addUserIDs,omitempty"`
+	RemoveUserIDs []uuid.UUID `json:"removeUserIDs,omitempty"`
+}
+
+// UpdateUser - информация об изменении статуса пользователя
+type UpdateUser struct {
+	UserID uuid.UUID `json:"userID"`
+	State  string    `json:"state"` // "added" or "removed"
+}
+
+// UpdateChatResponse - ответ на обновление чата
+type UpdateChatResponse struct {
+	Chat        ChatResponse `json:"chat"`
+	UpdateUsers []UpdateUser `json:"updateUsers"`
+}
+
+// ChangeRoleRequest - запрос на изменение роли пользователя в чате
+type ChangeRoleRequest struct {
+	UserID uuid.UUID `json:"user_id" binding:"required"`
+	RoleID int       `json:"role_id" binding:"required"`
+}

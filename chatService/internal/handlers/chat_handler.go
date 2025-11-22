@@ -18,7 +18,18 @@ func NewChatHandler(chatController *controllers.ChatController) *ChatHandler {
 	return &ChatHandler{chatController}
 }
 
-// ChangeUserRole POST /api/v1/chats/:chat_id/roles/change
+// ChangeUserRole Изменение роли пользователя в чате
+// @Summary Изменение роли пользователя в чате
+// @Description Изменяет роль пользователя в указанном чате
+// @Tags chats
+// @Accept json
+// @Produce json
+// @Param chat_id path string true "UUID чата"
+// @Param request body object true "Данные для изменения роли" example({"user_id":"00000000-0000-0000-0000-000000000000","role_id":1})
+// @Success 200 "Роль успешно изменена"
+// @Failure 400 {object} map[string]interface{} "Некорректный запрос"
+// @Failure 500 {object} map[string]interface{} "Внутренняя ошибка сервера"
+// @Router /chats/{chat_id}/roles/change [patch]
 func (h *ChatHandler) ChangeUserRole(c *gin.Context) {
 	var request struct {
 		UserID uuid.UUID `json:"user_id" binding:"required"`
@@ -42,7 +53,16 @@ func (h *ChatHandler) ChangeUserRole(c *gin.Context) {
 	c.Status(http.StatusOK)
 }
 
-// GetUserChats GET /api/v1/chats
+// GetUserChats Получение списка чатов пользователя
+// @Summary Получить список чатов пользователя
+// @Description Возвращает список всех чатов, в которых участвует указанный пользователь
+// @Tags chats
+// @Produce json
+// @Param user_id path string true "UUID пользователя"
+// @Success 200 {array} dto.ChatResponse "Список чатов пользователя"
+// @Failure 400 {object} map[string]interface{} "Некорректный UUID пользователя"
+// @Failure 500 {object} map[string]interface{} "Внутренняя ошибка сервера"
+// @Router /chats/{user_id} [get]
 func (h *ChatHandler) GetUserChats(c *gin.Context) {
 	userID, err := uuid.Parse(c.Param("user_id"))
 	if err != nil {
@@ -57,7 +77,19 @@ func (h *ChatHandler) GetUserChats(c *gin.Context) {
 	c.JSON(http.StatusOK, chats)
 }
 
-// CreateChat POST /api/v1/chats
+// CreateChat Создание нового чата
+// @Summary Создать новый чат
+// @Description Создает новый чат с указанными параметрами и участниками
+// @Tags chats
+// @Accept json
+// @Produce json
+// @Param chat body dto.CreateChatDTO true "Данные для создания чата"
+// @Success 201 {object} map[string]interface{} "Чат успешно создан"
+// @Failure 400 {object} map[string]interface{} "Некорректный запрос или неверные учетные данные"
+// @Failure 404 {object} map[string]interface{} "Файл не найден"
+// @Failure 502 {object} map[string]interface{} "Ошибка при обращении к внешнему сервису"
+// @Failure 500 {object} map[string]interface{} "Внутренняя ошибка сервера"
+// @Router /chats [post]
 func (h *ChatHandler) CreateChat(c *gin.Context) {
 	var createChatDTO dto.CreateChatDTO
 	if err := c.ShouldBindJSON(&createChatDTO); err != nil {
@@ -92,7 +124,20 @@ func (h *ChatHandler) CreateChat(c *gin.Context) {
 	c.JSON(http.StatusCreated, gin.H{"chat_id": chatID})
 }
 
-// UpdateChat PATCH /api/v1/chats/:chat_id
+// UpdateChat Обновление информации о чате
+// @Summary Обновить информацию о чате
+// @Description Обновляет данные чата: название, описание, аватар, список участников
+// @Tags chats
+// @Accept json
+// @Produce json
+// @Param chat_id path string true "UUID чата"
+// @Param chat body dto.UpdateChatDTO true "Данные для обновления чата"
+// @Success 200 {object} dto.UpdateChatResponse "Чат успешно обновлен"
+// @Failure 400 {object} map[string]interface{} "Некорректный запрос или неверные учетные данные"
+// @Failure 404 {object} map[string]interface{} "Файл не найден"
+// @Failure 502 {object} map[string]interface{} "Ошибка при обращении к внешнему сервису"
+// @Failure 500 {object} map[string]interface{} "Внутренняя ошибка сервера"
+// @Router /chats/{chat_id} [put]
 func (h *ChatHandler) UpdateChat(c *gin.Context) {
 	chatIDParam := c.Param("chat_id")
 	chatID, err := uuid.Parse(chatIDParam)
@@ -134,7 +179,15 @@ func (h *ChatHandler) UpdateChat(c *gin.Context) {
 	c.JSON(http.StatusOK, response)
 }
 
-// DeleteChat DELETE /api/v1/chats/:chat_id
+// DeleteChat Удаление чата
+// @Summary Удалить чат
+// @Description Удаляет чат по указанному ID
+// @Tags chats
+// @Produce json
+// @Param chat_id path string true "UUID чата"
+// @Success 204 "Чат успешно удален"
+// @Failure 500 {object} map[string]interface{} "Внутренняя ошибка сервера"
+// @Router /chats/{chat_id} [delete]
 func (h *ChatHandler) DeleteChat(c *gin.Context) {
 	chatID, _ := uuid.Parse(c.Param("chat_id"))
 	if err := h.ChatController.DeleteChat(chatID); err != nil {
@@ -144,7 +197,17 @@ func (h *ChatHandler) DeleteChat(c *gin.Context) {
 	c.Status(http.StatusNoContent)
 }
 
-// BanUser POST /api/v1/chats/:chat_id/ban/:user_id
+// BanUser Блокировка пользователя в чате
+// @Summary Заблокировать пользователя в чате
+// @Description Блокирует указанного пользователя в чате
+// @Tags chats
+// @Produce json
+// @Param chat_id path string true "UUID чата"
+// @Param user_id path string true "UUID пользователя"
+// @Success 200 "Пользователь успешно заблокирован"
+// @Failure 400 {object} map[string]interface{} "Некорректный UUID чата или пользователя"
+// @Failure 500 {object} map[string]interface{} "Внутренняя ошибка сервера"
+// @Router /chats/{chat_id}/ban/{user_id} [post]
 func (h *ChatHandler) BanUser(c *gin.Context) {
 	chatID, err := uuid.Parse(c.Param("chat_id"))
 	if err != nil {

@@ -7,6 +7,7 @@ import (
 	ac "common/contracts/api-chat"
 	"context"
 	"errors"
+	"fmt"
 	"github.com/google/uuid"
 	"log"
 	"time"
@@ -168,4 +169,86 @@ func (ctrl *ChatController) GetChatMessages(chatID uuid.UUID, userID uuid.UUID, 
 
 func (ctrl *ChatController) SearchMessages(userID uuid.UUID, chatID uuid.UUID, query string, offset, limit int) (*ac.GetSearchResponse, error) {
 	return ctrl.chatClient.SearchMessages(userID, chatID, query, offset, limit)
+}
+
+// UpdateChat - обновление чата с инвалидацией кеша
+func (ctrl *ChatController) UpdateChat(chatID uuid.UUID, updateReq *ac.UpdateChatRequest) (*ac.UpdateChatResponse, error) {
+	result, err := ctrl.chatClient.UpdateChat(chatID, updateReq)
+	if err != nil {
+		return nil, err
+	}
+
+	// Инвалидация кеша чата
+	ctx := context.Background()
+	cacheKey := fmt.Sprintf("chat:%s", chatID.String())
+	_ = ctrl.cacheService.Delete(ctx, cacheKey)
+
+	// Инвалидация кеша списков чатов для всех затронутых пользователей
+	if updateReq.AddUserIDs != nil {
+		for _, uid := range updateReq.AddUserIDs {
+			userChatsKey := fmt.Sprintf("user:%s:chats", uid.String())
+			_ = ctrl.cacheService.Delete(ctx, userChatsKey)
+		}
+	}
+	if updateReq.RemoveUserIDs != nil {
+		for _, uid := range updateReq.RemoveUserIDs {
+			userChatsKey := fmt.Sprintf("user:%s:chats", uid.String())
+			_ = ctrl.cacheService.Delete(ctx, userChatsKey)
+		}
+	}
+
+	return result, nil
+}
+
+// DeleteChat - удаление чата с инвалидацией кеша
+func (ctrl *ChatController) DeleteChat(chatID uuid.UUID) error {
+	err := ctrl.chatClient.DeleteChat(chatID)
+	if err != nil {
+		return err
+	}
+
+	// Инвалидация кеша чата
+	ctx := context.Background()
+	cacheKey := fmt.Sprintf("chat:%s", chatID.String())
+	_ = ctrl.cacheService.Delete(ctx, cacheKey)
+
+	// Инвалидация кеша участников чата
+	membersKey := fmt.Sprintf("chat:%s:members", chatID.String())
+	_ = ctrl.cacheService.Delete(ctx, membersKey)
+
+	return nil
+}
+
+// BanUser - блокировка пользователя в чате с инвалидацией кеша
+func (ctrl *ChatController) BanUser(chatID, userID uuid.UUID) error {
+	err := ctrl.chatClient.BanUser(chatID, userID)
+	if err != nil {
+		return err
+	}
+
+	// Инвалидация кеша участников чата
+	ctx := context.Background()
+	membersKey := fmt.Sprintf("chat:%s:members", chatID.String())
+	_ = ctrl.cacheService.Delete(ctx, membersKey)
+
+	// Инвалидация списка чатов пользователя
+	userChatsKey := fmt.Sprintf("user:%s:chats", userID.String())
+	_ = ctrl.cacheService.Delete(ctx, userChatsKey)
+
+	return nil
+}
+
+// ChangeUserRole - изменение роли пользователя в чате с инвалидацией кеша
+func (ctrl *ChatController) ChangeUserRole(chatID uuid.UUID, changeRoleReq *ac.ChangeRoleRequest) error {
+	err := ctrl.chatClient.ChangeUserRole(chatID, changeRoleReq)
+	if err != nil {
+		return err
+	}
+
+	// Инвалидация кеша прав пользователя в чате
+	ctx := context.Background()
+	userRoleKey := fmt.Sprintf("chat:%s:user:%s:role", chatID.String(), changeRoleReq.UserID.String())
+	_ = ctrl.cacheService.Delete(ctx, userRoleKey)
+
+	return nil
 }

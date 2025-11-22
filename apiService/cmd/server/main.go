@@ -34,6 +34,18 @@ import (
 // @externalDocs.description OpenAPI
 // @externalDocs.url https://swagger.io/resources/open-api/
 
+// @tag.name auth
+// @tag.description Регистрация и аутентификация
+
+// @tag.name users
+// @tag.description Операции с пользователем
+
+// @tag.name chats
+// @tag.description Операции с чатами
+
+// @tag.name tasks
+// @tag.description Операции с задачами
+
 func main() {
 	// Загружаем переменные окружения из .env файла (если существует)
 	if err := godotenv.Load(); err != nil {
@@ -109,7 +121,7 @@ func main() {
 	authController := controllers.NewAuthController(fileClient, userClient)
 	userController := controllers.NewUserController(fileClient, userClient, cacheService)
 	chatController := controllers.NewChatController(chatClient, fileClient, cacheService)
-	taskController := controllers.NewTaskController(taskClient, fileClient)
+	taskController := controllers.NewTaskController(taskClient, fileClient, cacheService)
 
 	//Init handlers with session service
 	authHandler := handlers.NewAuthHandler(authController, sessionService)

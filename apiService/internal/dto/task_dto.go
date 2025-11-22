@@ -37,3 +37,8 @@ func (req *CreateTaskRequestGateway) ParseUUIDs() (*uuid.UUID, *uuid.UUID, error
 
 	return executorID, chatID, nil
 }
+
+// CreateStatusRequestGateway - запрос на создание статуса задачи через API Gateway
+type CreateStatusRequestGateway struct {
+	Name string `json:"name" binding:"required"`
+}

@@ -31,17 +31,11 @@ import (
 // @externalDocs.description  OpenAPI
 // @externalDocs.url          https://swagger.io/resources/open-api/
 
-// @tag.name auth
-// @tag.description Регистрация и аутентификация
+// @tag.name chats
+// @tag.description Операции с чатами
 
-// @tag.name users
-// @tag.description Операции с пользователем
-
-// @tag.name permissions
-// @tag.description Операции с правами доступа
-
-// @tag.name roles
-// @tag.description Операции с ролями пользователей
+// @tag.name messages
+// @tag.description Операции с сообщениями
 
 func main() {
 	// Загружаем переменные окружения из .env файла (если существует)

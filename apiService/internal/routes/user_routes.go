@@ -14,6 +14,19 @@ func RegisterUserRoutes(router *gin.Engine, userHandler *handlers.UserHandler, p
 		{
 			user.GET("/me", userHandler.GetUser)
 			user.PUT("/me", userHandler.UpdateUser)
+			user.GET("/:user_id", userHandler.GetUserProfileByID)
+		}
+
+		// Разрешения и роли
+		permissions := v1.Group("/permissions").Use(middlewares.JWTMiddlewareWithKeyManager(publicKeyManager, sessionService))
+		{
+			permissions.GET("", userHandler.GetAllPermissions)
+		}
+
+		roles := v1.Group("/roles").Use(middlewares.JWTMiddlewareWithKeyManager(publicKeyManager, sessionService))
+		{
+			roles.GET("", userHandler.GetAllRoles)
+			roles.POST("", userHandler.CreateRole)
 		}
 	}
 }
