@@ -4,10 +4,11 @@ import (
 	"apiService/internal/controllers"
 	"apiService/internal/dto"
 	"fmt"
-	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 	"net/http"
 	"strconv"
+
+	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 type ChatHandler struct {
@@ -247,13 +248,17 @@ func (h *ChatHandler) SearchMessages(c *gin.Context) {
 
 // UpdateChat Обновление чата
 // @Summary Обновить чат
-// @Description Обновляет параметры чата, включая добавление/удаление участников
+// @Description Обновляет параметры чата, включая добавление/удаление участников и обновление аватара
 // @Tags chats
-// @Accept json
+// @Accept multipart/form-data
 // @Produce json
 // @Security BearerAuth
 // @Param chat_id path string true "UUID чата"
-// @Param request body dto.UpdateChatRequestGateway true "Параметры обновления"
+// @Param name formData string false "Название чата"
+// @Param description formData string false "Описание чата"
+// @Param avatar formData file false "Новый аватар чата"
+// @Param addUserIDs formData []string false "UUID пользователей для добавления" collectionFormat=multi
+// @Param removeUserIDs formData []string false "UUID пользователей для удаления" collectionFormat=multi
 // @Success 200 {object} map[string]interface{} "Чат успешно обновлен"
 // @Failure 400 {object} map[string]interface{} "Некорректный запрос или неверный UUID"
 // @Failure 401 {object} map[string]interface{} "Пользователь не аутентифицирован"
@@ -266,10 +271,39 @@ func (h *ChatHandler) UpdateChat(c *gin.Context) {
 		return
 	}
 
-	var req dto.UpdateChatRequestGateway
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	// Парсим форму с помощью MultipartForm
+	form, err := c.MultipartForm()
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "failed to parse multipart form: " + err.Error()})
 		return
+	}
+
+	var req dto.UpdateChatRequestGateway
+
+	// Парсим обычные поля
+	if values, ok := form.Value["name"]; ok && len(values) > 0 && values[0] != "" {
+		req.Name = &values[0]
+	}
+	if values, ok := form.Value["description"]; ok && len(values) > 0 && values[0] != "" {
+		req.Description = &values[0]
+	}
+
+	// Парсим файл аватара
+	if files, ok := form.File["avatar"]; ok && len(files) > 0 {
+		req.Avatar = files[0]
+	}
+
+	// Парсим массивы UUID (поддерживаем оба формата: "addUserIDs" и "addUserIDs[]")
+	if values, ok := form.Value["addUserIDs"]; ok && len(values) > 0 {
+		req.AddUserIDs = values
+	} else if values, ok := form.Value["addUserIDs[]"]; ok && len(values) > 0 {
+		req.AddUserIDs = values
+	}
+
+	if values, ok := form.Value["removeUserIDs"]; ok && len(values) > 0 {
+		req.RemoveUserIDs = values
+	} else if values, ok := form.Value["removeUserIDs[]"]; ok && len(values) > 0 {
+		req.RemoveUserIDs = values
 	}
 
 	// Парсим UUID для добавления/удаления пользователей
@@ -279,7 +313,16 @@ func (h *ChatHandler) UpdateChat(c *gin.Context) {
 		return
 	}
 
-	result, err := h.chatController.UpdateChat(chatID, updateReq)
+	userID, exs := c.Get("userID")
+	if !exs {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "context doesn't exist userID"})
+		return
+	}
+	if _, ok := userID.(uuid.UUID); !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "incorrect type of user id in context"})
+	}
+
+	result, err := h.chatController.UpdateChat(chatID, &req, updateReq, userID.(uuid.UUID))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -307,7 +350,16 @@ func (h *ChatHandler) DeleteChat(c *gin.Context) {
 		return
 	}
 
-	err = h.chatController.DeleteChat(chatID)
+	userID, exs := c.Get("userID")
+	if !exs {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "context doesn't exist userID"})
+		return
+	}
+	if _, ok := userID.(uuid.UUID); !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "incorrect type of user id in context"})
+	}
+
+	err = h.chatController.DeleteChat(chatID, userID.(uuid.UUID))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -328,7 +380,7 @@ func (h *ChatHandler) DeleteChat(c *gin.Context) {
 // @Failure 400 {object} map[string]interface{} "Некорректный UUID чата или пользователя"
 // @Failure 401 {object} map[string]interface{} "Пользователь не аутентифицирован"
 // @Failure 500 {object} map[string]interface{} "Внутренняя ошибка сервера"
-// @Router /chats/{chat_id}/ban/{user_id} [post]
+// @Router /chats/{chat_id}/ban/{user_id} [patch]
 func (h *ChatHandler) BanUser(c *gin.Context) {
 	chatID, err := uuid.Parse(c.Param("chat_id"))
 	if err != nil {
@@ -342,7 +394,16 @@ func (h *ChatHandler) BanUser(c *gin.Context) {
 		return
 	}
 
-	err = h.chatController.BanUser(chatID, userID)
+	ownerID, exs := c.Get("userID")
+	if !exs {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "context doesn't exist userID"})
+		return
+	}
+	if _, ok := ownerID.(uuid.UUID); !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "incorrect type of user id in context"})
+	}
+
+	err = h.chatController.BanUser(chatID, userID, ownerID.(uuid.UUID))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -372,6 +433,15 @@ func (h *ChatHandler) ChangeUserRole(c *gin.Context) {
 		return
 	}
 
+	ownerID, exs := c.Get("userID")
+	if !exs {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "context doesn't exist userID"})
+		return
+	}
+	if _, ok := ownerID.(uuid.UUID); !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "incorrect type of user id in context"})
+	}
+
 	var req dto.ChangeRoleRequestGateway
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -385,7 +455,7 @@ func (h *ChatHandler) ChangeUserRole(c *gin.Context) {
 		return
 	}
 
-	err = h.chatController.ChangeUserRole(chatID, changeRoleReq)
+	err = h.chatController.ChangeUserRole(chatID, ownerID.(uuid.UUID), changeRoleReq)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

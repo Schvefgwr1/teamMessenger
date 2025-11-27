@@ -174,6 +174,381 @@ const docTemplate = `{
                 }
             }
         },
+        "/chat-permissions": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Возвращает список всех доступных permissions для чатов",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "chat-permissions"
+                ],
+                "summary": "Получить список всех permissions",
+                "responses": {
+                    "200": {
+                        "description": "Список permissions",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/dto.PermissionResponseGateway"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Создает новый permission для чатов",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "chat-permissions"
+                ],
+                "summary": "Создать новый permission",
+                "parameters": [
+                    {
+                        "description": "Данные для создания permission",
+                        "name": "permission",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.CreatePermissionRequestGateway"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Созданный permission",
+                        "schema": {
+                            "$ref": "#/definitions/dto.PermissionResponseGateway"
+                        }
+                    },
+                    "400": {
+                        "description": "Некорректный запрос",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/chat-permissions/{permission_id}": {
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Удаляет permission по указанному ID",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "chat-permissions"
+                ],
+                "summary": "Удалить permission",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID permission",
+                        "name": "permission_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Permission успешно удален"
+                    },
+                    "400": {
+                        "description": "Некорректный ID permission",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/chat-roles": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Возвращает список всех доступных ролей с их permissions",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "chat-roles"
+                ],
+                "summary": "Получить список всех ролей чата",
+                "responses": {
+                    "200": {
+                        "description": "Список ролей",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/dto.RoleResponseGateway"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Создает новую роль с указанными permissions",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "chat-roles"
+                ],
+                "summary": "Создать новую роль",
+                "parameters": [
+                    {
+                        "description": "Данные для создания роли",
+                        "name": "role",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.CreateRoleRequestGateway"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Созданная роль",
+                        "schema": {
+                            "$ref": "#/definitions/dto.RoleResponseGateway"
+                        }
+                    },
+                    "400": {
+                        "description": "Некорректный запрос",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/chat-roles/{role_id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Возвращает информацию о роли с её permissions",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "chat-roles"
+                ],
+                "summary": "Получить роль по ID",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID роли",
+                        "name": "role_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Информация о роли",
+                        "schema": {
+                            "$ref": "#/definitions/dto.RoleResponseGateway"
+                        }
+                    },
+                    "400": {
+                        "description": "Некорректный ID роли",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Роль не найдена",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Удаляет роль по указанному ID",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "chat-roles"
+                ],
+                "summary": "Удалить роль",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID роли",
+                        "name": "role_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Роль успешно удалена"
+                    },
+                    "400": {
+                        "description": "Некорректный ID роли",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/chat-roles/{role_id}/permissions": {
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Полностью заменяет список permissions у роли",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "chat-roles"
+                ],
+                "summary": "Обновить permissions роли",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID роли",
+                        "name": "role_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Новый список permission IDs",
+                        "name": "permissions",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.UpdateRolePermissionsRequestGateway"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Обновленная роль",
+                        "schema": {
+                            "$ref": "#/definitions/dto.RoleResponseGateway"
+                        }
+                    },
+                    "400": {
+                        "description": "Некорректный запрос",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
         "/chats": {
             "post": {
                 "security": [
@@ -491,9 +866,9 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Обновляет параметры чата, включая добавление/удаление участников",
+                "description": "Обновляет параметры чата, включая добавление/удаление участников и обновление аватара",
                 "consumes": [
-                    "application/json"
+                    "multipart/form-data"
                 ],
                 "produces": [
                     "application/json"
@@ -511,13 +886,42 @@ const docTemplate = `{
                         "required": true
                     },
                     {
-                        "description": "Параметры обновления",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/dto.UpdateChatRequestGateway"
-                        }
+                        "type": "string",
+                        "description": "Название чата",
+                        "name": "name",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Описание чата",
+                        "name": "description",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "file",
+                        "description": "Новый аватар чата",
+                        "name": "avatar",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "collectionFormat": "csv",
+                        "description": "UUID пользователей для добавления",
+                        "name": "addUserIDs",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "collectionFormat": "csv",
+                        "description": "UUID пользователей для удаления",
+                        "name": "removeUserIDs",
+                        "in": "formData"
                     }
                 ],
                 "responses": {
@@ -607,7 +1011,7 @@ const docTemplate = `{
             }
         },
         "/chats/{chat_id}/ban/{user_id}": {
-            "post": {
+            "patch": {
                 "security": [
                     {
                         "BearerAuth": []
@@ -1541,6 +1945,17 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.CreatePermissionRequestGateway": {
+            "type": "object",
+            "required": [
+                "name"
+            ],
+            "properties": {
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
         "dto.CreateRoleRequestGateway": {
             "type": "object",
             "required": [
@@ -1587,28 +2002,44 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.UpdateChatRequestGateway": {
+        "dto.PermissionResponseGateway": {
             "type": "object",
             "properties": {
-                "addUserIDs": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "avatarFileID": {
+                "id": {
                     "type": "integer"
                 },
-                "description": {
+                "name": {
                     "type": "string"
+                }
+            }
+        },
+        "dto.RoleResponseGateway": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer"
                 },
                 "name": {
                     "type": "string"
                 },
-                "removeUserIDs": {
+                "permissions": {
                     "type": "array",
                     "items": {
-                        "type": "string"
+                        "$ref": "#/definitions/dto.PermissionResponseGateway"
+                    }
+                }
+            }
+        },
+        "dto.UpdateRolePermissionsRequestGateway": {
+            "type": "object",
+            "required": [
+                "permissionIds"
+            ],
+            "properties": {
+                "permissionIds": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
                     }
                 }
             }

@@ -78,14 +78,17 @@ func main() {
 	chatRoleRepository := repositories.NewChatRoleRepository(db)
 	chatUserRepository := repositories.NewChatUserRepository(db)
 	chatRepository := repositories.NewChatRepository(db)
+	chatPermissionRepository := repositories.NewChatPermissionRepository(db)
 
 	// Init controllers
 	messageController := controllers.NewMessageController(messageRepository, chatRepository, chatUserRepository)
 	chatController := controllers.NewChatController(chatRepository, chatUserRepository, chatRoleRepository, notificationService)
+	rolePermissionController := controllers.NewRolePermissionController(chatRoleRepository, chatPermissionRepository)
 
 	// Init handlers
 	messageHandler := handlers.NewMessageHandler(messageController)
 	chatHandler := handlers.NewChatHandler(chatController)
+	rolePermissionHandler := handlers.NewRolePermissionHandler(rolePermissionController)
 
 	//Init services
 	permissionsService := services.NewChatPermissionService(chatUserRepository)
@@ -103,6 +106,7 @@ func main() {
 	//r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	routes.RegisterChatRoutes(r, chatHandler, messageHandler, permissionsMiddleware)
+	routes.RegisterRolePermissionRoutes(r, rolePermissionHandler)
 
 	// Graceful shutdown для Kafka producer
 	defer func() {

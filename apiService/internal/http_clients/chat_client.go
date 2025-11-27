@@ -5,9 +5,10 @@ import (
 	ac "common/contracts/api-chat"
 	"encoding/json"
 	"fmt"
-	"github.com/google/uuid"
 	"io"
 	"net/http"
+
+	"github.com/google/uuid"
 )
 
 type ChatClient interface {
@@ -16,10 +17,10 @@ type ChatClient interface {
 	SendMessage(chatID uuid.UUID, senderID uuid.UUID, req *ac.CreateMessageRequest) (*ac.MessageResponse, error)
 	GetChatMessages(chatID uuid.UUID, userID uuid.UUID, offset, limit int) ([]*ac.GetChatMessage, error)
 	SearchMessages(userID uuid.UUID, chatID uuid.UUID, query string, offset, limit int) (*ac.GetSearchResponse, error)
-	UpdateChat(chatID uuid.UUID, updateReq *ac.UpdateChatRequest) (*ac.UpdateChatResponse, error)
-	DeleteChat(chatID uuid.UUID) error
-	BanUser(chatID, userID uuid.UUID) error
-	ChangeUserRole(chatID uuid.UUID, changeRoleReq *ac.ChangeRoleRequest) error
+	UpdateChat(chatID uuid.UUID, updateReq *ac.UpdateChatRequest, userID uuid.UUID) (*ac.UpdateChatResponse, error)
+	DeleteChat(chatID, userID uuid.UUID) error
+	BanUser(chatID, userID, ownerID uuid.UUID) error
+	ChangeUserRole(chatID, ownerID uuid.UUID, changeRoleReq *ac.ChangeRoleRequest) error
 }
 
 type chatClient struct {
@@ -173,7 +174,7 @@ func (c *chatClient) SearchMessages(userID uuid.UUID, chatID uuid.UUID, query st
 }
 
 // UpdateChat - обновление чата
-func (c *chatClient) UpdateChat(chatID uuid.UUID, updateReq *ac.UpdateChatRequest) (*ac.UpdateChatResponse, error) {
+func (c *chatClient) UpdateChat(chatID uuid.UUID, updateReq *ac.UpdateChatRequest, userID uuid.UUID) (*ac.UpdateChatResponse, error) {
 	url := fmt.Sprintf("%s/api/v1/chats/%s", c.host, chatID.String())
 
 	reqBody, err := json.Marshal(updateReq)
@@ -187,6 +188,7 @@ func (c *chatClient) UpdateChat(chatID uuid.UUID, updateReq *ac.UpdateChatReques
 	}
 
 	httpReq.Header.Set("Content-Type", "application/json")
+	httpReq.Header.Set("X-User-ID", userID.String())
 
 	client := &http.Client{}
 	resp, err := client.Do(httpReq)
@@ -209,13 +211,16 @@ func (c *chatClient) UpdateChat(chatID uuid.UUID, updateReq *ac.UpdateChatReques
 }
 
 // DeleteChat - удаление чата
-func (c *chatClient) DeleteChat(chatID uuid.UUID) error {
+func (c *chatClient) DeleteChat(chatID, userID uuid.UUID) error {
 	url := fmt.Sprintf("%s/api/v1/chats/%s", c.host, chatID.String())
 
 	httpReq, err := http.NewRequest(http.MethodDelete, url, nil)
 	if err != nil {
 		return fmt.Errorf("failed to create request: %w", err)
 	}
+
+	httpReq.Header.Set("Content-Type", "application/json")
+	httpReq.Header.Set("X-User-ID", userID.String())
 
 	client := &http.Client{}
 	resp, err := client.Do(httpReq)
@@ -233,13 +238,15 @@ func (c *chatClient) DeleteChat(chatID uuid.UUID) error {
 }
 
 // BanUser - блокировка пользователя в чате
-func (c *chatClient) BanUser(chatID, userID uuid.UUID) error {
+func (c *chatClient) BanUser(chatID, userID, ownerID uuid.UUID) error {
 	url := fmt.Sprintf("%s/api/v1/chats/%s/ban/%s", c.host, chatID.String(), userID.String())
 
-	httpReq, err := http.NewRequest(http.MethodPost, url, nil)
+	httpReq, err := http.NewRequest(http.MethodPatch, url, nil)
 	if err != nil {
 		return fmt.Errorf("failed to create request: %w", err)
 	}
+
+	httpReq.Header.Set("X-User-ID", ownerID.String())
 
 	client := &http.Client{}
 	resp, err := client.Do(httpReq)
@@ -257,7 +264,7 @@ func (c *chatClient) BanUser(chatID, userID uuid.UUID) error {
 }
 
 // ChangeUserRole - изменение роли пользователя в чате
-func (c *chatClient) ChangeUserRole(chatID uuid.UUID, changeRoleReq *ac.ChangeRoleRequest) error {
+func (c *chatClient) ChangeUserRole(chatID, ownerID uuid.UUID, changeRoleReq *ac.ChangeRoleRequest) error {
 	url := fmt.Sprintf("%s/api/v1/chats/%s/roles/change", c.host, chatID.String())
 
 	reqBody, err := json.Marshal(changeRoleReq)
@@ -271,6 +278,7 @@ func (c *chatClient) ChangeUserRole(chatID uuid.UUID, changeRoleReq *ac.ChangeRo
 	}
 
 	httpReq.Header.Set("Content-Type", "application/json")
+	httpReq.Header.Set("X-User-ID", ownerID.String())
 
 	client := &http.Client{}
 	resp, err := client.Do(httpReq)

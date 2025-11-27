@@ -27,6 +27,13 @@ definitions:
           type: string
         type: array
     type: object
+  dto.CreatePermissionRequestGateway:
+    properties:
+      name:
+        type: string
+    required:
+    - name
+    type: object
   dto.CreateRoleRequestGateway:
     properties:
       description:
@@ -57,22 +64,32 @@ definitions:
     - login
     - password
     type: object
-  dto.UpdateChatRequestGateway:
+  dto.PermissionResponseGateway:
     properties:
-      addUserIDs:
-        items:
-          type: string
-        type: array
-      avatarFileID:
+      id:
         type: integer
-      description:
-        type: string
       name:
         type: string
-      removeUserIDs:
+    type: object
+  dto.RoleResponseGateway:
+    properties:
+      id:
+        type: integer
+      name:
+        type: string
+      permissions:
         items:
-          type: string
+          $ref: '#/definitions/dto.PermissionResponseGateway'
         type: array
+    type: object
+  dto.UpdateRolePermissionsRequestGateway:
+    properties:
+      permissionIds:
+        items:
+          type: integer
+        type: array
+    required:
+    - permissionIds
     type: object
 externalDocs:
   description: OpenAPI
@@ -192,6 +209,248 @@ paths:
       summary: Зарегистрировать нового пользователя
       tags:
       - auth
+  /chat-permissions:
+    get:
+      description: Возвращает список всех доступных permissions для чатов
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Список permissions
+          schema:
+            items:
+              $ref: '#/definitions/dto.PermissionResponseGateway'
+            type: array
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Получить список всех permissions
+      tags:
+      - chat-permissions
+    post:
+      consumes:
+      - application/json
+      description: Создает новый permission для чатов
+      parameters:
+      - description: Данные для создания permission
+        in: body
+        name: permission
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreatePermissionRequestGateway'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Созданный permission
+          schema:
+            $ref: '#/definitions/dto.PermissionResponseGateway'
+        "400":
+          description: Некорректный запрос
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Создать новый permission
+      tags:
+      - chat-permissions
+  /chat-permissions/{permission_id}:
+    delete:
+      description: Удаляет permission по указанному ID
+      parameters:
+      - description: ID permission
+        in: path
+        name: permission_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: Permission успешно удален
+        "400":
+          description: Некорректный ID permission
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Удалить permission
+      tags:
+      - chat-permissions
+  /chat-roles:
+    get:
+      description: Возвращает список всех доступных ролей с их permissions
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Список ролей
+          schema:
+            items:
+              $ref: '#/definitions/dto.RoleResponseGateway'
+            type: array
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Получить список всех ролей чата
+      tags:
+      - chat-roles
+    post:
+      consumes:
+      - application/json
+      description: Создает новую роль с указанными permissions
+      parameters:
+      - description: Данные для создания роли
+        in: body
+        name: role
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateRoleRequestGateway'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Созданная роль
+          schema:
+            $ref: '#/definitions/dto.RoleResponseGateway'
+        "400":
+          description: Некорректный запрос
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Создать новую роль
+      tags:
+      - chat-roles
+  /chat-roles/{role_id}:
+    delete:
+      description: Удаляет роль по указанному ID
+      parameters:
+      - description: ID роли
+        in: path
+        name: role_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: Роль успешно удалена
+        "400":
+          description: Некорректный ID роли
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Удалить роль
+      tags:
+      - chat-roles
+    get:
+      description: Возвращает информацию о роли с её permissions
+      parameters:
+      - description: ID роли
+        in: path
+        name: role_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Информация о роли
+          schema:
+            $ref: '#/definitions/dto.RoleResponseGateway'
+        "400":
+          description: Некорректный ID роли
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Роль не найдена
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Получить роль по ID
+      tags:
+      - chat-roles
+  /chat-roles/{role_id}/permissions:
+    patch:
+      consumes:
+      - application/json
+      description: Полностью заменяет список permissions у роли
+      parameters:
+      - description: ID роли
+        in: path
+        name: role_id
+        required: true
+        type: integer
+      - description: Новый список permission IDs
+        in: body
+        name: permissions
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateRolePermissionsRequestGateway'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Обновленная роль
+          schema:
+            $ref: '#/definitions/dto.RoleResponseGateway'
+        "400":
+          description: Некорректный запрос
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Обновить permissions роли
+      tags:
+      - chat-roles
   /chats:
     post:
       consumes:
@@ -285,20 +544,41 @@ paths:
       - chats
     put:
       consumes:
-      - application/json
+      - multipart/form-data
       description: Обновляет параметры чата, включая добавление/удаление участников
+        и обновление аватара
       parameters:
       - description: UUID чата
         in: path
         name: chat_id
         required: true
         type: string
-      - description: Параметры обновления
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/dto.UpdateChatRequestGateway'
+      - description: Название чата
+        in: formData
+        name: name
+        type: string
+      - description: Описание чата
+        in: formData
+        name: description
+        type: string
+      - description: Новый аватар чата
+        in: formData
+        name: avatar
+        type: file
+      - collectionFormat: csv
+        description: UUID пользователей для добавления
+        in: formData
+        items:
+          type: string
+        name: addUserIDs
+        type: array
+      - collectionFormat: csv
+        description: UUID пользователей для удаления
+        in: formData
+        items:
+          type: string
+        name: removeUserIDs
+        type: array
       produces:
       - application/json
       responses:
@@ -328,7 +608,7 @@ paths:
       tags:
       - chats
   /chats/{chat_id}/ban/{user_id}:
-    post:
+    patch:
       description: Блокирует пользователя, запрещая ему доступ к чату
       parameters:
       - description: UUID чата

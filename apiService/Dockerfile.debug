@@ -1,0 +1,46 @@
+# ============================
+#      BUILDER
+# ============================
+FROM golang:1.23.1-alpine AS builder
+
+RUN apk add --no-cache git ca-certificates tzdata bash build-base && \
+    go install github.com/go-delve/delve/cmd/dlv@latest
+
+WORKDIR /app
+ENV GOWORK=off
+
+COPY common/ ./common/
+COPY apiService/ ./apiService/
+
+WORKDIR /app/apiService
+
+RUN go mod tidy && go mod download
+
+# Debug build: -N -l отключают оптимизацию
+RUN CGO_ENABLED=0 GOOS=linux \
+    go build -gcflags "all=-N -l" -o main ./cmd/server/
+
+# ============================
+#      RUNTIME
+# ============================
+FROM alpine:latest
+
+RUN apk --no-cache add ca-certificates tzdata bash
+
+WORKDIR /root/
+
+COPY --from=builder /app/apiService/main .
+COPY --from=builder /app/apiService/config ./config/
+COPY --from=builder /app/apiService/.env* ./
+RUN touch .env
+
+COPY --from=builder /go/bin/dlv /usr/local/bin/dlv
+
+RUN adduser -D -s /bin/sh appuser && \
+    chown -R appuser:appuser /root
+USER appuser
+
+EXPOSE 8084
+EXPOSE 4000
+
+CMD ["dlv", "--listen=:4000", "--headless=true", "--api-version=2", "--accept-multiclient", "exec", "./main"]

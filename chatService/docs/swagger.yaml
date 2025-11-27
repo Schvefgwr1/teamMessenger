@@ -41,6 +41,24 @@ definitions:
     required:
     - content
     type: object
+  dto.CreatePermissionRequest:
+    properties:
+      name:
+        type: string
+    required:
+    - name
+    type: object
+  dto.CreateRoleRequest:
+    properties:
+      name:
+        type: string
+      permissionIds:
+        items:
+          type: integer
+        type: array
+    required:
+    - name
+    type: object
   dto.FileSwagger:
     properties:
       created_at:
@@ -84,6 +102,24 @@ definitions:
       total:
         type: integer
     type: object
+  dto.PermissionResponse:
+    properties:
+      id:
+        type: integer
+      name:
+        type: string
+    type: object
+  dto.RoleResponse:
+    properties:
+      id:
+        type: integer
+      name:
+        type: string
+      permissions:
+        items:
+          $ref: '#/definitions/dto.PermissionResponse'
+        type: array
+    type: object
   dto.UpdateChatDTO:
     properties:
       addUserIDs:
@@ -109,6 +145,15 @@ definitions:
         items:
           $ref: '#/definitions/dto.UpdateUser'
         type: array
+    type: object
+  dto.UpdateRolePermissionsRequest:
+    properties:
+      permissionIds:
+        items:
+          type: integer
+        type: array
+    required:
+    - permissionIds
     type: object
   dto.UpdateUser:
     properties:
@@ -160,6 +205,232 @@ info:
   title: Chat Service API
   version: "1.0"
 paths:
+  /chat-permissions:
+    get:
+      description: Возвращает список всех доступных permissions для чатов
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Список permissions
+          schema:
+            items:
+              $ref: '#/definitions/dto.PermissionResponse'
+            type: array
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Получить список всех permissions
+      tags:
+      - chat-permissions
+    post:
+      consumes:
+      - application/json
+      description: Создает новый permission для чатов
+      parameters:
+      - description: Данные для создания permission
+        in: body
+        name: permission
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreatePermissionRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Созданный permission
+          schema:
+            $ref: '#/definitions/dto.PermissionResponse'
+        "400":
+          description: Некорректный запрос
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Создать новый permission
+      tags:
+      - chat-permissions
+  /chat-permissions/{permission_id}:
+    delete:
+      description: Удаляет permission по указанному ID
+      parameters:
+      - description: ID permission
+        in: path
+        name: permission_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: Permission успешно удален
+        "400":
+          description: Некорректный ID permission
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Удалить permission
+      tags:
+      - chat-permissions
+  /chat-roles:
+    get:
+      description: Возвращает список всех доступных ролей с их permissions
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Список ролей
+          schema:
+            items:
+              $ref: '#/definitions/dto.RoleResponse'
+            type: array
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Получить список всех ролей чата
+      tags:
+      - chat-roles
+    post:
+      consumes:
+      - application/json
+      description: Создает новую роль с указанными permissions
+      parameters:
+      - description: Данные для создания роли
+        in: body
+        name: role
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateRoleRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Созданная роль
+          schema:
+            $ref: '#/definitions/dto.RoleResponse'
+        "400":
+          description: Некорректный запрос
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Создать новую роль
+      tags:
+      - chat-roles
+  /chat-roles/{role_id}:
+    delete:
+      description: Удаляет роль по указанному ID
+      parameters:
+      - description: ID роли
+        in: path
+        name: role_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: Роль успешно удалена
+        "400":
+          description: Некорректный ID роли
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Удалить роль
+      tags:
+      - chat-roles
+    get:
+      description: Возвращает информацию о роли с её permissions
+      parameters:
+      - description: ID роли
+        in: path
+        name: role_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Информация о роли
+          schema:
+            $ref: '#/definitions/dto.RoleResponse'
+        "400":
+          description: Некорректный ID роли
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Роль не найдена
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Получить роль по ID
+      tags:
+      - chat-roles
+  /chat-roles/{role_id}/permissions:
+    patch:
+      consumes:
+      - application/json
+      description: Полностью заменяет список permissions у роли
+      parameters:
+      - description: ID роли
+        in: path
+        name: role_id
+        required: true
+        type: integer
+      - description: Новый список permission IDs
+        in: body
+        name: permissions
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateRolePermissionsRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Обновленная роль
+          schema:
+            $ref: '#/definitions/dto.RoleResponse'
+        "400":
+          description: Некорректный запрос
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Обновить permissions роли
+      tags:
+      - chat-roles
   /chats:
     post:
       consumes:

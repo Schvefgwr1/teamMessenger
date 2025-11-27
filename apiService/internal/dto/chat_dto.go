@@ -2,8 +2,9 @@ package dto
 
 import (
 	ac "common/contracts/api-chat"
-	"github.com/google/uuid"
 	"mime/multipart"
+
+	"github.com/google/uuid"
 )
 
 type CreateChatRequestGateway struct {
@@ -49,19 +50,18 @@ type CreateChatResponse struct {
 }
 
 type UpdateChatRequestGateway struct {
-	Name          *string  `json:"name,omitempty"`
-	Description   *string  `json:"description,omitempty"`
-	AvatarFileID  *int     `json:"avatarFileID,omitempty"`
-	AddUserIDs    []string `json:"addUserIDs,omitempty"`
-	RemoveUserIDs []string `json:"removeUserIDs,omitempty"`
+	Name          *string               `form:"name"`
+	Description   *string               `form:"description"`
+	Avatar        *multipart.FileHeader `form:"avatar"`
+	AddUserIDs    []string              `form:"addUserIDs"`
+	RemoveUserIDs []string              `form:"removeUserIDs"`
 }
 
 // ToUpdateChatRequest преобразует Gateway DTO в контракт
 func (r *UpdateChatRequestGateway) ToUpdateChatRequest() (*ac.UpdateChatRequest, error) {
 	req := &ac.UpdateChatRequest{
-		Name:         r.Name,
-		Description:  r.Description,
-		AvatarFileID: r.AvatarFileID,
+		Name:        r.Name,
+		Description: r.Description,
 	}
 
 	// Парсим AddUserIDs

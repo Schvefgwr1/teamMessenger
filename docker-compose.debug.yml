@@ -1,0 +1,25 @@
+services:
+  api-service:
+    build:
+      context: .
+      dockerfile: apiService/Dockerfile.debug
+    ports:
+      - "8084:8084"
+      - "4000:4000"
+    command: ["dlv", "--listen=:4000", "--headless=true", "--api-version=2", "--accept-multiclient", "exec", "./main"]
+    security_opt:
+      - "apparmor=unconfined"
+    cap_add:
+      - SYS_PTRACE
+  chat-service:
+    build:
+      context: .
+      dockerfile: chatService/Dockerfile.debug
+    ports:
+      - "8083:8083"
+      - "4001:4001"
+    command: [ "dlv", "--listen=:4001", "--headless=true", "--api-version=2", "--accept-multiclient", "exec", "./main" ]
+    security_opt:
+      - "apparmor=unconfined"
+    cap_add:
+      - SYS_PTRACE

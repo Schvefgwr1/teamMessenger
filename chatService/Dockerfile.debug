@@ -1,0 +1,61 @@
+# ============================
+#      BUILDER
+# ============================
+FROM golang:1.23.1-alpine AS builder
+
+RUN apk add --no-cache git ca-certificates tzdata bash build-base && \
+    go install github.com/go-delve/delve/cmd/dlv@latest
+
+WORKDIR /app
+ENV GOWORK=off
+
+COPY common/ ./common/
+COPY chatService/ ./chatService/
+COPY scripts/ ./scripts/
+
+WORKDIR /app/chatService
+
+RUN go mod tidy && go mod download
+
+# Debug build: -N -l отключают оптимизацию
+RUN CGO_ENABLED=0 GOOS=linux \
+    go build -gcflags "all=-N -l" -o main ./cmd/server/
+
+# ============================
+#      RUNTIME
+# ============================
+FROM alpine:latest
+
+RUN apk --no-cache add ca-certificates tzdata postgresql-client bash
+
+WORKDIR /root/
+
+COPY --from=builder /app/chatService/main .
+COPY --from=builder /app/chatService/config ./config/
+COPY --from=builder /app/chatService/.env* ./
+RUN touch .env
+
+# Копируем миграции
+COPY --from=builder /app/chatService/migrations ./migrations/
+
+# Копируем скрипт миграций для обычного запуска
+COPY --from=builder /app/scripts/migrate-and-run.sh ./migrate-and-run.sh
+RUN chmod +x ./migrate-and-run.sh
+
+# Копируем скрипт миграций для дебага
+COPY --from=builder /app/scripts/migrate-and-debug.sh ./migrate-and-debug.sh
+RUN chmod +x ./migrate-and-debug.sh
+
+# Копируем delve debugger
+COPY --from=builder /go/bin/dlv /usr/local/bin/dlv
+
+RUN adduser -D -s /bin/sh appuser && \
+    chown -R appuser:appuser /root
+USER appuser
+
+EXPOSE 8083
+EXPOSE 4001
+
+# Используем скрипт миграций с дебаггером
+CMD ["./migrate-and-debug.sh", "./migrations", "chat-service"]
+

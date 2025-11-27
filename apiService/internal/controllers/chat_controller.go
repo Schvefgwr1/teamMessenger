@@ -8,9 +8,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/google/uuid"
 	"log"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 type ChatController struct {
@@ -172,14 +173,25 @@ func (ctrl *ChatController) SearchMessages(userID uuid.UUID, chatID uuid.UUID, q
 }
 
 // UpdateChat - обновление чата с инвалидацией кеша
-func (ctrl *ChatController) UpdateChat(chatID uuid.UUID, updateReq *ac.UpdateChatRequest) (*ac.UpdateChatResponse, error) {
-	result, err := ctrl.chatClient.UpdateChat(chatID, updateReq)
+func (ctrl *ChatController) UpdateChat(chatID uuid.UUID, req *dto.UpdateChatRequestGateway, updateReq *ac.UpdateChatRequest, userID uuid.UUID) (*ac.UpdateChatResponse, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
+	// Если передан новый аватар, загружаем его
+	if req.Avatar != nil {
+		uploadedFile, err := ctrl.fileClient.UploadFile(req.Avatar)
+		if err != nil {
+			return nil, err
+		}
+		updateReq.AvatarFileID = uploadedFile.ID
+	}
+
+	result, err := ctrl.chatClient.UpdateChat(chatID, updateReq, userID)
 	if err != nil {
 		return nil, err
 	}
 
 	// Инвалидация кеша чата
-	ctx := context.Background()
 	cacheKey := fmt.Sprintf("chat:%s", chatID.String())
 	_ = ctrl.cacheService.Delete(ctx, cacheKey)
 
@@ -201,8 +213,8 @@ func (ctrl *ChatController) UpdateChat(chatID uuid.UUID, updateReq *ac.UpdateCha
 }
 
 // DeleteChat - удаление чата с инвалидацией кеша
-func (ctrl *ChatController) DeleteChat(chatID uuid.UUID) error {
-	err := ctrl.chatClient.DeleteChat(chatID)
+func (ctrl *ChatController) DeleteChat(chatID, userID uuid.UUID) error {
+	err := ctrl.chatClient.DeleteChat(chatID, userID)
 	if err != nil {
 		return err
 	}
@@ -220,8 +232,8 @@ func (ctrl *ChatController) DeleteChat(chatID uuid.UUID) error {
 }
 
 // BanUser - блокировка пользователя в чате с инвалидацией кеша
-func (ctrl *ChatController) BanUser(chatID, userID uuid.UUID) error {
-	err := ctrl.chatClient.BanUser(chatID, userID)
+func (ctrl *ChatController) BanUser(chatID, userID, ownerID uuid.UUID) error {
+	err := ctrl.chatClient.BanUser(chatID, userID, ownerID)
 	if err != nil {
 		return err
 	}
@@ -239,8 +251,8 @@ func (ctrl *ChatController) BanUser(chatID, userID uuid.UUID) error {
 }
 
 // ChangeUserRole - изменение роли пользователя в чате с инвалидацией кеша
-func (ctrl *ChatController) ChangeUserRole(chatID uuid.UUID, changeRoleReq *ac.ChangeRoleRequest) error {
-	err := ctrl.chatClient.ChangeUserRole(chatID, changeRoleReq)
+func (ctrl *ChatController) ChangeUserRole(chatID, ownerID uuid.UUID, changeRoleReq *ac.ChangeRoleRequest) error {
+	err := ctrl.chatClient.ChangeUserRole(chatID, ownerID, changeRoleReq)
 	if err != nil {
 		return err
 	}

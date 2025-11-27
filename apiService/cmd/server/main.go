@@ -75,6 +75,7 @@ func main() {
 	userClient := http_clients.NewUserClient(common.GetEnvOrDefault("USER_SERVICE_URL", "http://localhost:8082"))
 	chatClient := http_clients.NewChatClient(common.GetEnvOrDefault("CHAT_SERVICE_URL", "http://localhost:8083"))
 	taskClient := http_clients.NewTaskClient(common.GetEnvOrDefault("TASK_SERVICE_URL", "http://localhost:8081"))
+	rolePermissionClient := http_clients.NewRolePermissionClient(common.GetEnvOrDefault("CHAT_SERVICE_URL", "http://localhost:8083"))
 
 	// Init PublicKeyManager
 	publicKeyManager := services.NewPublicKeyManager()
@@ -122,12 +123,14 @@ func main() {
 	userController := controllers.NewUserController(fileClient, userClient, cacheService)
 	chatController := controllers.NewChatController(chatClient, fileClient, cacheService)
 	taskController := controllers.NewTaskController(taskClient, fileClient, cacheService)
+	rolePermissionController := controllers.NewRolePermissionController(rolePermissionClient)
 
 	//Init handlers with session service
 	authHandler := handlers.NewAuthHandler(authController, sessionService)
 	userHandler := handlers.NewUserHandler(userController)
 	chatHandler := handlers.NewChatHandler(chatController)
 	taskHandler := handlers.NewTaskHandler(taskController)
+	rolePermissionHandler := handlers.NewRolePermissionHandler(rolePermissionController)
 
 	r := gin.Default()
 
@@ -141,6 +144,7 @@ func main() {
 	routes.RegisterUserRoutes(r, userHandler, publicKeyManager, sessionService)
 	routes.RegisterChatRoutes(r, chatHandler, publicKeyManager, sessionService)
 	routes.RegisterTaskRoutes(r, taskHandler, publicKeyManager, sessionService)
+	routes.RegisterRolePermissionRoutes(r, rolePermissionHandler, publicKeyManager, sessionService)
 
 	// Graceful shutdown
 	go func() {
