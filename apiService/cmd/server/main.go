@@ -119,14 +119,14 @@ func main() {
 	}
 
 	//Init controllers with cache service
-	authController := controllers.NewAuthController(fileClient, userClient)
+	authController := controllers.NewAuthController(fileClient, userClient, sessionService)
 	userController := controllers.NewUserController(fileClient, userClient, cacheService)
 	chatController := controllers.NewChatController(chatClient, fileClient, cacheService)
 	taskController := controllers.NewTaskController(taskClient, fileClient, cacheService)
-	rolePermissionController := controllers.NewRolePermissionController(rolePermissionClient)
+	rolePermissionController := controllers.NewRolePermissionController(rolePermissionClient, cacheService)
 
 	//Init handlers with session service
-	authHandler := handlers.NewAuthHandler(authController, sessionService)
+	authHandler := handlers.NewAuthHandler(authController)
 	userHandler := handlers.NewUserHandler(userController)
 	chatHandler := handlers.NewChatHandler(chatController)
 	taskHandler := handlers.NewTaskHandler(taskController)

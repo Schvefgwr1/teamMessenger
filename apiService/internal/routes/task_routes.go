@@ -4,25 +4,51 @@ import (
 	"apiService/internal/handlers"
 	"apiService/internal/middlewares"
 	"apiService/internal/services"
+
 	"github.com/gin-gonic/gin"
 )
 
-func RegisterTaskRoutes(router *gin.Engine, taskHandler *handlers.TaskHandler, publicKeyManager *services.PublicKeyManager, sessionService *services.SessionService) {
-	tasks := router.Group("api/v1/tasks").Use(middlewares.JWTMiddlewareWithKeyManager(publicKeyManager, sessionService))
+func RegisterTaskRoutes(
+	router *gin.Engine,
+	taskHandler *handlers.TaskHandler,
+	publicKeyManager *services.PublicKeyManager,
+	sessionService *services.SessionService,
+) {
+
+	// --- MAIN TASKS GROUP ---
+	tasks := router.Group("api/v1/tasks")
+	tasks.Use(
+		middlewares.JWTMiddlewareWithKeyManager(publicKeyManager, sessionService),
+		middlewares.RequirePermission("process_tasks"),
+	)
+
 	{
+		// Основные маршруты задач
 		tasks.POST("", taskHandler.CreateTask)
 		tasks.PATCH("/:task_id/status/:status_id", taskHandler.UpdateTaskStatus)
 		tasks.GET("/:task_id", taskHandler.GetTaskByID)
 
-		// Статусы задач
-		tasks.GET("/statuses", taskHandler.GetAllStatuses)
-		tasks.POST("/statuses", taskHandler.CreateStatus)
-		tasks.GET("/statuses/:status_id", taskHandler.GetStatusByID)
-		tasks.DELETE("/statuses/:status_id", taskHandler.DeleteStatus)
+		// == /api/v1/tasks/statuses ==
+		statuses := tasks.Group("/statuses")
+		statuses.Use(middlewares.RequirePermission("process_tasks_statuses"))
+
+		{
+			statuses.GET("", taskHandler.GetAllStatuses)
+			statuses.POST("", taskHandler.CreateStatus)
+			statuses.GET("/:status_id", taskHandler.GetStatusByID)
+			statuses.DELETE("/:status_id", taskHandler.DeleteStatus)
+		}
 	}
 
-	users := router.Group("api/v1/users").Use(middlewares.JWTMiddlewareWithKeyManager(publicKeyManager, sessionService))
+	// --- USER TASKS ---
+	users := router.Group("api/v1/users")
+	users.Use(
+		middlewares.JWTMiddlewareWithKeyManager(publicKeyManager, sessionService),
+		middlewares.RequirePermission("process_tasks"),
+	)
+
 	{
+		// /api/v1/users/:user_id/tasks
 		users.GET("/:user_id/tasks", taskHandler.GetUserTasks)
 	}
 }

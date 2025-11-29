@@ -4,19 +4,28 @@ import (
 	"apiService/internal/custom_errors"
 	"apiService/internal/dto"
 	"apiService/internal/http_clients"
+	"apiService/internal/services"
 	au "common/contracts/api-user"
+	"context"
 	"fmt"
+	"time"
+
 	"github.com/google/uuid"
 	"mime/multipart"
 )
 
 type AuthController struct {
-	fileClient http_clients.FileClient
-	userClient http_clients.UserClient
+	fileClient     http_clients.FileClient
+	userClient     http_clients.UserClient
+	sessionService *services.SessionService
 }
 
-func NewAuthController(fileClient http_clients.FileClient, userClient http_clients.UserClient) *AuthController {
-	return &AuthController{fileClient: fileClient, userClient: userClient}
+func NewAuthController(fileClient http_clients.FileClient, userClient http_clients.UserClient, sessionService *services.SessionService) *AuthController {
+	return &AuthController{
+		fileClient:     fileClient,
+		userClient:     userClient,
+		sessionService: sessionService,
+	}
 }
 
 func (ctrl *AuthController) Register(userRequest *dto.RegisterUserRequestGateway, file *multipart.FileHeader) *dto.RegisterUserResponseGateway {
@@ -68,6 +77,35 @@ func (ctrl *AuthController) Register(userRequest *dto.RegisterUserRequestGateway
 	return &response
 }
 
-func (ctrl *AuthController) Login(login *au.Login) (string, uuid.UUID, error) {
-	return ctrl.userClient.Login(login)
+func (ctrl *AuthController) Login(ctx context.Context, login *au.Login) (string, uuid.UUID, error) {
+	token, userID, err := ctrl.userClient.Login(login)
+	if err != nil {
+		return "", uuid.Nil, err
+	}
+
+	// Создаем сессию в Redis если есть sessionService
+	if ctrl.sessionService != nil && token != "" && userID != uuid.Nil {
+		// Отзываем все старые сессии пользователя перед созданием новой
+		if err := ctrl.sessionService.RevokeAllUserSessions(ctx, userID); err != nil {
+			// Логируем ошибку, но продолжаем создание новой сессии
+			fmt.Printf("Failed to revoke old sessions for user %s: %v\n", userID.String(), err)
+		}
+
+		expiresAt := time.Now().Add(24 * time.Hour)
+		if err := ctrl.sessionService.CreateSession(ctx, userID, token, expiresAt); err != nil {
+			// Логируем ошибку, но не прерываем процесс логина
+			fmt.Printf("Failed to create session in Redis: %v\n", err)
+		}
+	}
+
+	return token, userID, nil
+}
+
+func (ctrl *AuthController) Logout(ctx context.Context, userID uuid.UUID, token string) error {
+	// Если sessionService отсутствует, считаем что выход успешен
+	if ctrl.sessionService == nil {
+		return nil
+	}
+
+	return ctrl.sessionService.RevokeSession(ctx, userID, token)
 }

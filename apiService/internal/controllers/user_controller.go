@@ -94,9 +94,10 @@ func (ctrl *UserController) UpdateUser(id uuid.UUID, userRequest *dto.UpdateUser
 	if err := ctrl.cacheService.DeleteUserCache(ctx, id.String()); err != nil {
 		log.Printf("Failed to invalidate user cache for %s: %v", id.String(), err)
 	}
-	// Также инвалидируем списки чатов, где участвует пользователь
-	if err := ctrl.cacheService.DeleteByPattern(ctx, "chat_list:*"); err != nil {
-		log.Printf("Failed to invalidate chat list cache: %v", err)
+
+	// Инвалидируем только список чатов этого пользователя (не всех!)
+	if err := ctrl.cacheService.DeleteUserChatListCache(ctx, id.String()); err != nil {
+		log.Printf("Failed to invalidate chat list cache for %s: %v", id.String(), err)
 	}
 
 	return updateResponse, nil

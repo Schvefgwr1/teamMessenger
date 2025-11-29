@@ -28,6 +28,9 @@ func NewTaskController(taskClient http_clients.TaskClient, fileClient http_clien
 }
 
 func (ctrl *TaskController) CreateTask(req *dto.CreateTaskRequestGateway, creatorID uuid.UUID) (*at.TaskResponse, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
 	// Парсим UUID из строк
 	executorID, chatID, err := req.ParseUUIDs()
 	if err != nil {
@@ -77,18 +80,95 @@ func (ctrl *TaskController) CreateTask(req *dto.CreateTaskRequestGateway, creato
 		return nil, errors.New("error of task client")
 	}
 
+	// Инвалидация кеша задач для создателя
+	_ = ctrl.cacheService.DeleteUserTasksCache(ctx, creatorID.String())
+
+	// Инвалидация кеша задач для исполнителя (если указан)
+	if executorID != nil && *executorID != uuid.Nil {
+		_ = ctrl.cacheService.DeleteUserTasksCache(ctx, executorID.String())
+	}
+
 	return taskResp, nil
 }
 
 func (ctrl *TaskController) UpdateTaskStatus(taskID, statusID int) error {
-	return ctrl.taskClient.UpdateTaskStatus(taskID, statusID)
+	err := ctrl.taskClient.UpdateTaskStatus(taskID, statusID)
+	if err != nil {
+		return err
+	}
+
+	// Инвалидация кеша задачи
+	ctx := context.Background()
+	_ = ctrl.cacheService.DeleteTaskCache(ctx, taskID)
+
+	return nil
 }
 
 func (ctrl *TaskController) GetTaskByID(taskID int) (*at.TaskServiceResponse, error) {
-	return ctrl.taskClient.GetTaskByID(taskID)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	// Пытаемся получить из кеша
+	var cachedTask at.TaskServiceResponse
+	err := ctrl.cacheService.GetTaskCache(ctx, taskID, &cachedTask)
+	if err == nil {
+		log.Printf("Task %d found in cache", taskID)
+		return &cachedTask, nil
+	}
+
+	// Получаем из сервиса
+	task, err := ctrl.taskClient.GetTaskByID(taskID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Сохраняем в кеш
+	if err := ctrl.cacheService.SetTaskCache(ctx, taskID, task); err != nil {
+		log.Printf("Failed to cache task %d: %v", taskID, err)
+	}
+
+	return task, nil
 }
 
 func (ctrl *TaskController) GetUserTasks(userID string, limit, offset int) (*[]at.TaskToList, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	// Кешируем только первую страницу (offset = 0)
+	if offset == 0 && limit <= 20 {
+		var cachedTasks []at.TaskToList
+		err := ctrl.cacheService.GetUserTasksCache(ctx, userID, &cachedTasks)
+		if err == nil {
+			log.Printf("User tasks for %s found in cache", userID)
+			if limit < len(cachedTasks) {
+				result := cachedTasks[:limit]
+				return &result, nil
+			}
+			return &cachedTasks, nil
+		}
+
+		// Получаем из сервиса (всегда запрашиваем 20 для кеша)
+		tasks, err := ctrl.taskClient.GetUserTasks(userID, 20, 0)
+		if err != nil {
+			return nil, err
+		}
+
+		// Сохраняем в кеш
+		if tasks != nil {
+			if err := ctrl.cacheService.SetUserTasksCache(ctx, userID, *tasks); err != nil {
+				log.Printf("Failed to cache user tasks for %s: %v", userID, err)
+			}
+		}
+
+		// Возвращаем запрошенное количество
+		if tasks != nil && limit < len(*tasks) {
+			result := (*tasks)[:limit]
+			return &result, nil
+		}
+		return tasks, nil
+	}
+
+	// Для остальных запросов идём напрямую в сервис
 	return ctrl.taskClient.GetUserTasks(userID, limit, offset)
 }
 

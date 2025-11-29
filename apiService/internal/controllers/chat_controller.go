@@ -129,6 +129,11 @@ func (ctrl *ChatController) SendMessage(chatID uuid.UUID, senderID uuid.UUID, re
 		log.Printf("Failed to invalidate messages cache for chat %s: %v", chatID.String(), err)
 	}
 
+	// Инвалидируем кеш поиска для этого чата
+	if err := ctrl.cacheService.DeleteSearchCacheByChat(ctx, chatID.String()); err != nil {
+		log.Printf("Failed to invalidate search cache for chat %s: %v", chatID.String(), err)
+	}
+
 	return message, nil
 }
 
@@ -169,6 +174,37 @@ func (ctrl *ChatController) GetChatMessages(chatID uuid.UUID, userID uuid.UUID, 
 }
 
 func (ctrl *ChatController) SearchMessages(userID uuid.UUID, chatID uuid.UUID, query string, offset, limit int) (*ac.GetSearchResponse, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	// Кешируем только первую страницу поиска (offset = 0)
+	if offset == 0 && limit <= 20 {
+		// Создаём хеш из query для ключа кеша
+		queryHash := fmt.Sprintf("%x", query) // Простой хеш для короткого ключа
+
+		var cachedResult ac.GetSearchResponse
+		err := ctrl.cacheService.GetSearchCache(ctx, chatID.String(), queryHash, &cachedResult)
+		if err == nil {
+			log.Printf("Search results for chat %s found in cache", chatID.String())
+			return &cachedResult, nil
+		}
+
+		// Получаем из сервиса
+		result, err := ctrl.chatClient.SearchMessages(userID, chatID, query, offset, limit)
+		if err != nil {
+			return nil, err
+		}
+
+		// Сохраняем в кеш
+		if result != nil {
+			if err := ctrl.cacheService.SetSearchCache(ctx, chatID.String(), queryHash, result); err != nil {
+				log.Printf("Failed to cache search results for chat %s: %v", chatID.String(), err)
+			}
+		}
+
+		return result, nil
+	}
+
 	return ctrl.chatClient.SearchMessages(userID, chatID, query, offset, limit)
 }
 
@@ -191,21 +227,21 @@ func (ctrl *ChatController) UpdateChat(chatID uuid.UUID, req *dto.UpdateChatRequ
 		return nil, err
 	}
 
-	// Инвалидация кеша чата
-	cacheKey := fmt.Sprintf("chat:%s", chatID.String())
-	_ = ctrl.cacheService.Delete(ctx, cacheKey)
+	// Инвалидация кеша информации о чате
+	_ = ctrl.cacheService.DeleteChatInfoCache(ctx, chatID.String())
+
+	// Инвалидация кеша участников чата
+	_ = ctrl.cacheService.DeleteChatMembersCache(ctx, chatID.String())
 
 	// Инвалидация кеша списков чатов для всех затронутых пользователей
 	if updateReq.AddUserIDs != nil {
 		for _, uid := range updateReq.AddUserIDs {
-			userChatsKey := fmt.Sprintf("user:%s:chats", uid.String())
-			_ = ctrl.cacheService.Delete(ctx, userChatsKey)
+			_ = ctrl.cacheService.DeleteUserChatListCache(ctx, uid.String())
 		}
 	}
 	if updateReq.RemoveUserIDs != nil {
 		for _, uid := range updateReq.RemoveUserIDs {
-			userChatsKey := fmt.Sprintf("user:%s:chats", uid.String())
-			_ = ctrl.cacheService.Delete(ctx, userChatsKey)
+			_ = ctrl.cacheService.DeleteUserChatListCache(ctx, uid.String())
 		}
 	}
 
@@ -219,14 +255,16 @@ func (ctrl *ChatController) DeleteChat(chatID, userID uuid.UUID) error {
 		return err
 	}
 
-	// Инвалидация кеша чата
 	ctx := context.Background()
-	cacheKey := fmt.Sprintf("chat:%s", chatID.String())
-	_ = ctrl.cacheService.Delete(ctx, cacheKey)
+
+	// Инвалидация кеша информации о чате
+	_ = ctrl.cacheService.DeleteChatInfoCache(ctx, chatID.String())
 
 	// Инвалидация кеша участников чата
-	membersKey := fmt.Sprintf("chat:%s:members", chatID.String())
-	_ = ctrl.cacheService.Delete(ctx, membersKey)
+	_ = ctrl.cacheService.DeleteChatMembersCache(ctx, chatID.String())
+
+	// Инвалидация кеша сообщений чата
+	_ = ctrl.cacheService.DeleteChatMessagesCache(ctx, chatID.String())
 
 	return nil
 }
@@ -238,14 +276,16 @@ func (ctrl *ChatController) BanUser(chatID, userID, ownerID uuid.UUID) error {
 		return err
 	}
 
-	// Инвалидация кеша участников чата
 	ctx := context.Background()
-	membersKey := fmt.Sprintf("chat:%s:members", chatID.String())
-	_ = ctrl.cacheService.Delete(ctx, membersKey)
+
+	// Инвалидация кеша участников чата
+	_ = ctrl.cacheService.DeleteChatMembersCache(ctx, chatID.String())
+
+	// Инвалидация кеша роли пользователя в чате
+	_ = ctrl.cacheService.DeleteChatUserRoleCache(ctx, chatID.String(), userID.String())
 
 	// Инвалидация списка чатов пользователя
-	userChatsKey := fmt.Sprintf("user:%s:chats", userID.String())
-	_ = ctrl.cacheService.Delete(ctx, userChatsKey)
+	_ = ctrl.cacheService.DeleteUserChatListCache(ctx, userID.String())
 
 	return nil
 }
@@ -257,10 +297,13 @@ func (ctrl *ChatController) ChangeUserRole(chatID, ownerID uuid.UUID, changeRole
 		return err
 	}
 
-	// Инвалидация кеша прав пользователя в чате
 	ctx := context.Background()
-	userRoleKey := fmt.Sprintf("chat:%s:user:%s:role", chatID.String(), changeRoleReq.UserID.String())
-	_ = ctrl.cacheService.Delete(ctx, userRoleKey)
+
+	// Инвалидация кеша роли пользователя в чате
+	_ = ctrl.cacheService.DeleteChatUserRoleCache(ctx, chatID.String(), changeRoleReq.UserID.String())
+
+	// Инвалидация кеша участников чата (роли могут влиять на отображение)
+	_ = ctrl.cacheService.DeleteChatMembersCache(ctx, chatID.String())
 
 	return nil
 }

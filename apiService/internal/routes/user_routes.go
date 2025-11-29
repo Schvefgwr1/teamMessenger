@@ -4,29 +4,68 @@ import (
 	"apiService/internal/handlers"
 	"apiService/internal/middlewares"
 	"apiService/internal/services"
+
 	"github.com/gin-gonic/gin"
 )
 
-func RegisterUserRoutes(router *gin.Engine, userHandler *handlers.UserHandler, publicKeyManager *services.PublicKeyManager, sessionService *services.SessionService) {
+func RegisterUserRoutes(
+	router *gin.Engine,
+	userHandler *handlers.UserHandler,
+	publicKeyManager *services.PublicKeyManager,
+	sessionService *services.SessionService,
+) {
 	v1 := router.Group("/api/v1")
+
+	// -------------------------
+	// /api/v1/users
+	// -------------------------
+	users := v1.Group("/users")
+	// подключаем middleware для users (вызов Use не возвращает группу)
+	users.Use(middlewares.JWTMiddlewareWithKeyManager(publicKeyManager, sessionService))
+
+	// -------------------------
+	// /api/v1/users/me
+	// -------------------------
+	me := users.Group("/me")
+	me.Use(middlewares.RequirePermission("process_your_acc"))
+
 	{
-		user := v1.Group("/users").Use(middlewares.JWTMiddlewareWithKeyManager(publicKeyManager, sessionService))
-		{
-			user.GET("/me", userHandler.GetUser)
-			user.PUT("/me", userHandler.UpdateUser)
-			user.GET("/:user_id", userHandler.GetUserProfileByID)
-		}
+		me.GET("/", userHandler.GetUser)
+		me.PUT("/", userHandler.UpdateUser)
+	}
 
-		// Разрешения и роли
-		permissions := v1.Group("/permissions").Use(middlewares.JWTMiddlewareWithKeyManager(publicKeyManager, sessionService))
-		{
-			permissions.GET("", userHandler.GetAllPermissions)
-		}
+	// -------------------------
+	// /api/v1/users/:user_id
+	// -------------------------
+	otherUsers := users.Group("")
+	otherUsers.Use(middlewares.RequirePermission("watch_users"))
 
-		roles := v1.Group("/roles").Use(middlewares.JWTMiddlewareWithKeyManager(publicKeyManager, sessionService))
-		{
-			roles.GET("", userHandler.GetAllRoles)
-			roles.POST("", userHandler.CreateRole)
-		}
+	{
+		otherUsers.GET("/:user_id", userHandler.GetUserProfileByID)
+	}
+
+	// -------------------------
+	// /api/v1/permissions
+	// -------------------------
+	permissions := v1.Group("/permissions")
+	permissions.Use(
+		middlewares.JWTMiddlewareWithKeyManager(publicKeyManager, sessionService),
+		middlewares.RequirePermission("get_permissions"),
+	)
+	{
+		permissions.GET("/", userHandler.GetAllPermissions)
+	}
+
+	// -------------------------
+	// /api/v1/roles
+	// -------------------------
+	roles := v1.Group("/roles")
+	roles.Use(
+		middlewares.JWTMiddlewareWithKeyManager(publicKeyManager, sessionService),
+		middlewares.RequirePermission("process_roles"),
+	)
+	{
+		roles.GET("/", userHandler.GetAllRoles)
+		roles.POST("/", userHandler.CreateRole)
 	}
 }

@@ -9,7 +9,10 @@ import (
 )
 
 func RegisterChatRoutes(router *gin.Engine, chatHandler *handlers.ChatHandler, publicKeyManager *services.PublicKeyManager, sessionService *services.SessionService) {
-	chats := router.Group("api/v1/chats").Use(middlewares.JWTMiddlewareWithKeyManager(publicKeyManager, sessionService))
+	chats := router.Group("api/v1/chats").Use(
+		middlewares.JWTMiddlewareWithKeyManager(publicKeyManager, sessionService),
+		middlewares.RequirePermission("process_chats"),
+	)
 	{
 		chats.GET("/:user_id", chatHandler.GetUserChats)
 		chats.POST("", chatHandler.CreateChat)
@@ -25,7 +28,10 @@ func RegisterChatRoutes(router *gin.Engine, chatHandler *handlers.ChatHandler, p
 
 func RegisterRolePermissionRoutes(router *gin.Engine, rolePermissionHandler *handlers.ChatRolePermissionHandler, publicKeyManager *services.PublicKeyManager, sessionService *services.SessionService) {
 	// Роли чатов (глобальные)
-	roles := router.Group("api/v1/chat-roles").Use(middlewares.JWTMiddlewareWithKeyManager(publicKeyManager, sessionService))
+	roles := router.Group("api/v1/chat-roles").Use(
+		middlewares.JWTMiddlewareWithKeyManager(publicKeyManager, sessionService),
+		middlewares.RequirePermission("process_chats_roles"),
+	)
 	{
 		roles.GET("", rolePermissionHandler.GetAllRoles)
 		roles.GET("/:role_id", rolePermissionHandler.GetRoleByID)
@@ -35,7 +41,10 @@ func RegisterRolePermissionRoutes(router *gin.Engine, rolePermissionHandler *han
 	}
 
 	// Permissions чатов (глобальные)
-	permissions := router.Group("api/v1/chat-permissions").Use(middlewares.JWTMiddlewareWithKeyManager(publicKeyManager, sessionService))
+	permissions := router.Group("api/v1/chat-permissions").Use(
+		middlewares.JWTMiddlewareWithKeyManager(publicKeyManager, sessionService),
+		middlewares.RequirePermission("process_chats_permissions"),
+	)
 	{
 		permissions.GET("", rolePermissionHandler.GetAllPermissions)
 		permissions.POST("", rolePermissionHandler.CreatePermission)

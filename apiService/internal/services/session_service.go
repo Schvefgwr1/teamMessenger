@@ -2,6 +2,8 @@ package services
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -20,7 +22,6 @@ const (
 
 type JWTSession struct {
 	UserID    uuid.UUID     `json:"user_id"`
-	Token     string        `json:"token"`
 	Status    SessionStatus `json:"status"`
 	CreatedAt time.Time     `json:"created_at"`
 	ExpiresAt time.Time     `json:"expires_at"`
@@ -38,7 +39,6 @@ func NewSessionService(redisClient *redis.Client) *SessionService {
 func (s *SessionService) CreateSession(ctx context.Context, userID uuid.UUID, token string, expiresAt time.Time) error {
 	session := JWTSession{
 		UserID:    userID,
-		Token:     token,
 		Status:    SessionActive,
 		CreatedAt: time.Now(),
 		ExpiresAt: expiresAt,
@@ -161,11 +161,8 @@ func (s *SessionService) IsSessionValid(ctx context.Context, userID uuid.UUID, t
 	return true, nil
 }
 
-// hashToken создает простой хеш токена для использования в ключе Redis
+// hashToken создает SHA256 хеш токена для использования в ключе Redis
 func (s *SessionService) hashToken(token string) string {
-	// Используем последние 16 символов токена как идентификатор
-	if len(token) > 16 {
-		return token[len(token)-16:]
-	}
-	return token
+	hash := sha256.Sum256([]byte(token))
+	return hex.EncodeToString(hash[:])
 }
