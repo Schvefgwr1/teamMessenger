@@ -4,6 +4,7 @@ import (
 	"apiService/internal/controllers"
 	"apiService/internal/handlers"
 	"apiService/internal/http_clients"
+	"apiService/internal/middlewares"
 	"apiService/internal/routes"
 	"apiService/internal/services"
 	common "common/config"
@@ -134,17 +135,20 @@ func main() {
 
 	r := gin.Default()
 
-	// Health check endpoint
+	// Global per-user rate limiting middleware (applied after JWT auth in routes)
+	rateLimitConfig := middlewares.DefaultAPIRateLimitConfig()
+
+	// Health check endpoint (no rate limit)
 	r.GET("/api/v1/health", func(c *gin.Context) {
 		c.JSON(200, gin.H{"status": "ok"})
 	})
 
-	// Use new middleware with PublicKeyManager
+	// Use new middleware with PublicKeyManager and rate limiting
 	routes.RegisterAuthRoutes(r, authHandler, publicKeyManager, sessionService)
-	routes.RegisterUserRoutes(r, userHandler, publicKeyManager, sessionService)
-	routes.RegisterChatRoutes(r, chatHandler, publicKeyManager, sessionService)
-	routes.RegisterTaskRoutes(r, taskHandler, publicKeyManager, sessionService)
-	routes.RegisterRolePermissionRoutes(r, rolePermissionHandler, publicKeyManager, sessionService)
+	routes.RegisterUserRoutes(r, userHandler, publicKeyManager, sessionService, redisClient, rateLimitConfig)
+	routes.RegisterChatRoutes(r, chatHandler, publicKeyManager, sessionService, redisClient, rateLimitConfig)
+	routes.RegisterTaskRoutes(r, taskHandler, publicKeyManager, sessionService, redisClient, rateLimitConfig)
+	routes.RegisterRolePermissionRoutes(r, rolePermissionHandler, publicKeyManager, sessionService, redisClient, rateLimitConfig)
 
 	// Graceful shutdown
 	go func() {

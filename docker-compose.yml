@@ -155,19 +155,24 @@ services:
       "
     restart: "no"
 
-  # Nginx proxy for MinIO
+  # Nginx Gateway (API + MinIO proxy with rate limiting and WAF)
   nginx:
     image: nginx:alpine
     container_name: team-messenger-nginx
     restart: unless-stopped
     depends_on:
-      - minio
+      minio:
+        condition: service_healthy
+      api-service:
+        condition: service_healthy
     ports:
       - "${NGINX_PORT:-8090}:80"
     networks:
       - team-messenger-network
     volumes:
-      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./nginx/logs:/var/log/nginx
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/health"]
       interval: 30s
@@ -376,8 +381,11 @@ services:
       - CHAT_SERVICE_URL=http://chat-service:${CHAT_SERVICE_PORT:-8083}
       - TASK_SERVICE_URL=http://task-service:${TASK_SERVICE_PORT:-8081}
       - FILE_SERVICE_URL=http://file-service:${FILE_SERVICE_PORT:-8080}
-    ports:
-      - "${API_SERVICE_PORT:-8084}:${API_SERVICE_PORT:-8084}"
+    # In production, remove this port mapping - access API only through Nginx
+    # ports:
+    #   - "${API_SERVICE_PORT:-8084}:${API_SERVICE_PORT:-8084}"
+    expose:
+      - "${API_SERVICE_PORT:-8084}"
     networks:
       - team-messenger-network
     healthcheck:

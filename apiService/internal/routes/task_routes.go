@@ -6,6 +6,7 @@ import (
 	"apiService/internal/services"
 
 	"github.com/gin-gonic/gin"
+	"github.com/redis/go-redis/v9"
 )
 
 func RegisterTaskRoutes(
@@ -13,12 +14,15 @@ func RegisterTaskRoutes(
 	taskHandler *handlers.TaskHandler,
 	publicKeyManager *services.PublicKeyManager,
 	sessionService *services.SessionService,
+	redisClient *redis.Client,
+	rateLimitConfig middlewares.RateLimitConfig,
 ) {
 
 	// --- MAIN TASKS GROUP ---
 	tasks := router.Group("api/v1/tasks")
 	tasks.Use(
 		middlewares.JWTMiddlewareWithKeyManager(publicKeyManager, sessionService),
+		middlewares.RateLimitMiddleware(redisClient, rateLimitConfig),
 		middlewares.RequirePermission("process_tasks"),
 	)
 
@@ -44,6 +48,7 @@ func RegisterTaskRoutes(
 	users := router.Group("api/v1/users")
 	users.Use(
 		middlewares.JWTMiddlewareWithKeyManager(publicKeyManager, sessionService),
+		middlewares.RateLimitMiddleware(redisClient, rateLimitConfig),
 		middlewares.RequirePermission("process_tasks"),
 	)
 

@@ -6,11 +6,13 @@ import (
 	"apiService/internal/services"
 
 	"github.com/gin-gonic/gin"
+	"github.com/redis/go-redis/v9"
 )
 
-func RegisterChatRoutes(router *gin.Engine, chatHandler *handlers.ChatHandler, publicKeyManager *services.PublicKeyManager, sessionService *services.SessionService) {
+func RegisterChatRoutes(router *gin.Engine, chatHandler *handlers.ChatHandler, publicKeyManager *services.PublicKeyManager, sessionService *services.SessionService, redisClient *redis.Client, rateLimitConfig middlewares.RateLimitConfig) {
 	chats := router.Group("api/v1/chats").Use(
 		middlewares.JWTMiddlewareWithKeyManager(publicKeyManager, sessionService),
+		middlewares.RateLimitMiddleware(redisClient, rateLimitConfig),
 		middlewares.RequirePermission("process_chats"),
 	)
 	{
@@ -26,10 +28,11 @@ func RegisterChatRoutes(router *gin.Engine, chatHandler *handlers.ChatHandler, p
 	}
 }
 
-func RegisterRolePermissionRoutes(router *gin.Engine, rolePermissionHandler *handlers.ChatRolePermissionHandler, publicKeyManager *services.PublicKeyManager, sessionService *services.SessionService) {
+func RegisterRolePermissionRoutes(router *gin.Engine, rolePermissionHandler *handlers.ChatRolePermissionHandler, publicKeyManager *services.PublicKeyManager, sessionService *services.SessionService, redisClient *redis.Client, rateLimitConfig middlewares.RateLimitConfig) {
 	// Роли чатов (глобальные)
 	roles := router.Group("api/v1/chat-roles").Use(
 		middlewares.JWTMiddlewareWithKeyManager(publicKeyManager, sessionService),
+		middlewares.RateLimitMiddleware(redisClient, rateLimitConfig),
 		middlewares.RequirePermission("process_chats_roles"),
 	)
 	{
@@ -43,6 +46,7 @@ func RegisterRolePermissionRoutes(router *gin.Engine, rolePermissionHandler *han
 	// Permissions чатов (глобальные)
 	permissions := router.Group("api/v1/chat-permissions").Use(
 		middlewares.JWTMiddlewareWithKeyManager(publicKeyManager, sessionService),
+		middlewares.RateLimitMiddleware(redisClient, rateLimitConfig),
 		middlewares.RequirePermission("process_chats_permissions"),
 	)
 	{

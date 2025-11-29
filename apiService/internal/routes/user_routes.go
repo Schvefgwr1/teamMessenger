@@ -6,6 +6,7 @@ import (
 	"apiService/internal/services"
 
 	"github.com/gin-gonic/gin"
+	"github.com/redis/go-redis/v9"
 )
 
 func RegisterUserRoutes(
@@ -13,6 +14,8 @@ func RegisterUserRoutes(
 	userHandler *handlers.UserHandler,
 	publicKeyManager *services.PublicKeyManager,
 	sessionService *services.SessionService,
+	redisClient *redis.Client,
+	rateLimitConfig middlewares.RateLimitConfig,
 ) {
 	v1 := router.Group("/api/v1")
 
@@ -20,8 +23,10 @@ func RegisterUserRoutes(
 	// /api/v1/users
 	// -------------------------
 	users := v1.Group("/users")
-	// подключаем middleware для users (вызов Use не возвращает группу)
-	users.Use(middlewares.JWTMiddlewareWithKeyManager(publicKeyManager, sessionService))
+	users.Use(
+		middlewares.JWTMiddlewareWithKeyManager(publicKeyManager, sessionService),
+		middlewares.RateLimitMiddleware(redisClient, rateLimitConfig),
+	)
 
 	// -------------------------
 	// /api/v1/users/me
@@ -50,6 +55,7 @@ func RegisterUserRoutes(
 	permissions := v1.Group("/permissions")
 	permissions.Use(
 		middlewares.JWTMiddlewareWithKeyManager(publicKeyManager, sessionService),
+		middlewares.RateLimitMiddleware(redisClient, rateLimitConfig),
 		middlewares.RequirePermission("get_permissions"),
 	)
 	{
@@ -62,6 +68,7 @@ func RegisterUserRoutes(
 	roles := v1.Group("/roles")
 	roles.Use(
 		middlewares.JWTMiddlewareWithKeyManager(publicKeyManager, sessionService),
+		middlewares.RateLimitMiddleware(redisClient, rateLimitConfig),
 		middlewares.RequirePermission("process_roles"),
 	)
 	{

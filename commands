@@ -1,0 +1,8 @@
+📝 Итоговая шпаргалка по командам:
+Для разработки с изменением кода (используйте это!):
+docker compose -f docker-compose.yml -f docker-compose.debug.yml --env-file compose.env up -d --build api-service
+Остановить всё:
+docker compose -f docker-compose.yml -f docker-compose.debug.yml --env-file compose.env down
+Полная пересборка (если что-то сломалось):
+docker compose -f docker-compose.yml -f docker-compose.debug.yml --env-file compose.env down
+docker compose -f docker-compose.yml -f docker-compose.debug.yml --env-file compose.env up --build
