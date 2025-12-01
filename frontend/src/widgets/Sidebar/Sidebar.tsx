@@ -1,7 +1,7 @@
 import { NavLink } from 'react-router-dom';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/shared/lib/cn';
-import { useAuthStore } from '@/entities/session';
+import { useCurrentUser } from '@/entities/user';
 import { useSidebarStore } from './model/sidebarStore';
 import { userNavigation } from './navigation';
 
@@ -11,12 +11,22 @@ import { userNavigation } from './navigation';
  */
 export function Sidebar() {
   const { isCollapsed, toggle } = useSidebarStore();
-  const { hasPermission } = useAuthStore();
+  // Используем React Query для получения актуальных данных пользователя
+  const { data: user, isLoading } = useCurrentUser();
+
+  // Функция проверки permissions из актуальных данных пользователя
+  const hasPermission = (permissionName: string): boolean => {
+    if (!user?.Role?.Permissions) return false;
+    return user.Role.Permissions.some((p) => p.Name === permissionName);
+  };
 
   // Фильтруем навигацию по permissions
-  const filteredNavigation = userNavigation.filter(
-    (item) => !item.permission || hasPermission(item.permission)
-  );
+  // Если данные загружаются, показываем все элементы (чтобы не было пустого sidebar)
+  const filteredNavigation = isLoading
+    ? userNavigation
+    : userNavigation.filter(
+        (item) => !item.permission || hasPermission(item.permission)
+      );
 
   return (
     <aside

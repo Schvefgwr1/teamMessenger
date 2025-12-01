@@ -4,9 +4,19 @@
 @tailwind components;
 @tailwind utilities;
 
+.tsqd-parent-container {
+    display: none !important;
+}
+
 @layer base {
+  html,
   body {
     @apply bg-neutral-950 text-neutral-100;
+    overflow: hidden; /* Убираем scrollbar с body, он будет только в main контенте */
+    height: 100%;
+  }
+
+  body {
     font-family: 'Plus Jakarta Sans', 'SF Pro Display', system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;

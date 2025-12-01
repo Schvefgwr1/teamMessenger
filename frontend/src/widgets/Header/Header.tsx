@@ -15,7 +15,7 @@ export function Header() {
   return (
     <header
       className={cn(
-        'fixed top-0 left-0 right-0 h-16 z-40',
+        'fixed top-0 left-0 right-0 h-16 z-50',
         'bg-neutral-900/95 backdrop-blur-sm border-b border-neutral-800',
         'flex items-center justify-between px-4 md:px-6'
       )}

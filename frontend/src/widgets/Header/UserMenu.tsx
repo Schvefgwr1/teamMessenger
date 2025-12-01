@@ -1,6 +1,7 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { Shield, User, LogOut, Settings } from 'lucide-react';
 import { useAuthStore } from '@/entities/session';
+import { useCurrentUser } from '@/entities/user';
 import { Avatar, Dropdown } from '@/shared/ui';
 import { ROUTES } from '@/shared/constants';
 
@@ -10,26 +11,37 @@ import { ROUTES } from '@/shared/constants';
  */
 export function UserMenu() {
   const navigate = useNavigate();
-  const { user, isAdmin, logout } = useAuthStore();
+  const { logout } = useAuthStore();
+  // Используем React Query для получения актуальных данных пользователя
+  const { data: user, isLoading } = useCurrentUser();
+  const isAdminUser = user?.Role?.Name === 'admin' || user?.Role?.ID === 1;
 
   const handleLogout = () => {
     logout();
     navigate(ROUTES.LOGIN);
   };
 
-  const showAdminLink = isAdmin();
+  // Если данные ещё загружаются, показываем fallback
+  if (isLoading || !user) {
+    return (
+      <div className="flex items-center gap-2 p-1.5 rounded-lg">
+        <div className="w-8 h-8 rounded-full bg-neutral-800 animate-pulse" />
+        <div className="w-20 h-4 bg-neutral-800 rounded animate-pulse hidden md:block" />
+      </div>
+    );
+  }
 
   return (
     <Dropdown>
       <Dropdown.Trigger>
         <button className="flex items-center gap-2 p-1.5 rounded-lg hover:bg-neutral-800 transition-colors">
           <Avatar
-            file={user?.avatar}
-            fallback={user?.Username}
+            file={user.avatar}
+            fallback={user.Username}
             size="sm"
           />
           <span className="text-sm font-medium text-neutral-300 hidden md:block max-w-[120px] truncate">
-            {user?.Username}
+            {user.Username}
           </span>
         </button>
       </Dropdown.Trigger>
@@ -70,7 +82,7 @@ export function UserMenu() {
             </Link>
           </Dropdown.Item>
 
-          {showAdminLink && (
+          {isAdminUser && (
             <Dropdown.Item asChild>
               <Link
                 to={ROUTES.ADMIN}

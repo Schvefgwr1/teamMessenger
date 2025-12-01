@@ -57,6 +57,11 @@ export function Avatar({
   const avatarUrl = file ? getAvatarUrl(file) : src;
   const initials = fallback?.slice(0, 2).toUpperCase() || '?';
 
+  // Если передан className с размерами, используем w-full h-full для заполнения контейнера
+  const hasCustomSize = className && (className.includes('w-') || className.includes('h-'));
+  const imageSizeClass = hasCustomSize ? 'w-full h-full' : sizeClasses[size];
+  const fallbackSizeClass = hasCustomSize ? 'w-full h-full' : sizeClasses[size];
+
   return (
     <div className={cn('relative inline-block', className)}>
       {avatarUrl && !imageError ? (
@@ -64,7 +69,7 @@ export function Avatar({
           src={avatarUrl}
           alt={alt || fallback || 'Avatar'}
           onError={() => setImageError(true)}
-          className={cn('rounded-full object-cover bg-neutral-800', sizeClasses[size])}
+          className={cn('rounded-full object-cover bg-neutral-800', imageSizeClass)}
         />
       ) : (
         <div
@@ -72,7 +77,7 @@ export function Avatar({
             'rounded-full flex items-center justify-center',
             'bg-gradient-to-br from-primary-500 to-primary-700',
             'text-white font-medium',
-            sizeClasses[size]
+            fallbackSizeClass
           )}
         >
           {initials}

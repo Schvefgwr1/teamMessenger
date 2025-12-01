@@ -11,6 +11,7 @@ import { AuthLayout, MainLayout, AdminLayout } from '@/widgets/layouts';
 import { LoginPage } from '@/pages/auth/LoginPage';
 import { RegisterPage } from '@/pages/auth/RegisterPage';
 import { DashboardPage } from '@/pages/dashboard/DashboardPage';
+import { ProfilePage } from '@/pages/profile/ProfilePage';
 import { NotFoundPage } from '@/pages/errors/NotFoundPage';
 import { ForbiddenPage } from '@/pages/errors/ForbiddenPage';
 
@@ -33,7 +34,7 @@ function App() {
             <Route element={<ProtectedRoute />}>
               <Route element={<MainLayout />}>
                 <Route path={ROUTES.HOME} element={<DashboardPage />} />
-                <Route path={ROUTES.PROFILE} element={<div className="text-neutral-100">ProfilePage (TODO)</div>} />
+                <Route path={ROUTES.PROFILE} element={<ProfilePage />} />
                 <Route path={ROUTES.CHATS} element={<div className="text-neutral-100">ChatsPage (TODO)</div>} />
                 <Route path="/chats/:chatId" element={<div className="text-neutral-100">ChatDetailPage (TODO)</div>} />
                 <Route path={ROUTES.TASKS} element={<div className="text-neutral-100">TasksPage (TODO)</div>} />
