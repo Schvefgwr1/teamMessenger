@@ -3,6 +3,7 @@ package http_clients
 import (
 	"bytes"
 	au "common/contracts/api-user"
+	uc "common/contracts/user-contracts"
 	"crypto/rsa"
 	"encoding/json"
 	"fmt"
@@ -19,9 +20,9 @@ type UserClient interface {
 	GetUserByID(s string) (*au.GetUserResponse, error)
 	UpdateUser(userID string, req *au.UpdateUserRequest) (*au.UpdateUserResponse, error)
 	GetPublicKey() (*rsa.PublicKey, error)
-	GetAllPermissions() ([]*au.Permission, error)
-	GetAllRoles() ([]*au.Role, error)
-	CreateRole(req *au.CreateRoleRequest) (*au.Role, error)
+	GetAllPermissions() ([]*uc.Permission, error)
+	GetAllRoles() ([]*uc.Role, error)
+	CreateRole(req *au.CreateRoleRequest) (*uc.Role, error)
 }
 
 type userClient struct {
@@ -172,7 +173,7 @@ func (c *userClient) GetPublicKey() (*rsa.PublicKey, error) {
 }
 
 // GetAllPermissions - получить все права
-func (c *userClient) GetAllPermissions() ([]*au.Permission, error) {
+func (c *userClient) GetAllPermissions() ([]*uc.Permission, error) {
 	url := fmt.Sprintf("%s/api/v1/permissions/", c.host)
 
 	resp, err := http.Get(url)
@@ -186,7 +187,7 @@ func (c *userClient) GetAllPermissions() ([]*au.Permission, error) {
 		return nil, fmt.Errorf("user service returned error: %s", string(bodyBytes))
 	}
 
-	var permissions []*au.Permission
+	var permissions []*uc.Permission
 	if err := json.NewDecoder(resp.Body).Decode(&permissions); err != nil {
 		return nil, fmt.Errorf("failed to decode permissions response: %w", err)
 	}
@@ -195,7 +196,7 @@ func (c *userClient) GetAllPermissions() ([]*au.Permission, error) {
 }
 
 // GetAllRoles - получить все роли
-func (c *userClient) GetAllRoles() ([]*au.Role, error) {
+func (c *userClient) GetAllRoles() ([]*uc.Role, error) {
 	url := fmt.Sprintf("%s/api/v1/roles/", c.host)
 
 	resp, err := http.Get(url)
@@ -209,7 +210,7 @@ func (c *userClient) GetAllRoles() ([]*au.Role, error) {
 		return nil, fmt.Errorf("user service returned error: %s", string(bodyBytes))
 	}
 
-	var roles []*au.Role
+	var roles []*uc.Role
 	if err := json.NewDecoder(resp.Body).Decode(&roles); err != nil {
 		return nil, fmt.Errorf("failed to decode roles response: %w", err)
 	}
@@ -218,7 +219,7 @@ func (c *userClient) GetAllRoles() ([]*au.Role, error) {
 }
 
 // CreateRole - создать новую роль
-func (c *userClient) CreateRole(req *au.CreateRoleRequest) (*au.Role, error) {
+func (c *userClient) CreateRole(req *au.CreateRoleRequest) (*uc.Role, error) {
 	url := fmt.Sprintf("%s/api/v1/roles/", c.host)
 
 	reqBody, err := json.Marshal(req)
@@ -237,7 +238,7 @@ func (c *userClient) CreateRole(req *au.CreateRoleRequest) (*au.Role, error) {
 		return nil, fmt.Errorf("user service returned error: %s", string(bodyBytes))
 	}
 
-	var role au.Role
+	var role uc.Role
 	if err := json.NewDecoder(resp.Body).Decode(&role); err != nil {
 		return nil, fmt.Errorf("failed to decode role response: %w", err)
 	}

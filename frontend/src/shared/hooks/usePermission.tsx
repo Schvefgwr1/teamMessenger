@@ -15,7 +15,7 @@ export function hasPermission(
   permissionName: string
 ): boolean {
   if (!userPermissions || userPermissions.length === 0) return false;
-  return userPermissions.some((p) => p.name === permissionName);
+  return userPermissions.some((p) => p.Name === permissionName);
 }
 
 /**
@@ -46,7 +46,7 @@ export function hasAllPermissions(
 export function usePermissionNames(permissions: Permission[] | undefined): string[] {
   return useMemo(() => {
     if (!permissions) return [];
-    return permissions.map((p) => p.name);
+    return permissions.map((p) => p.Name);
   }, [permissions]);
 }
 

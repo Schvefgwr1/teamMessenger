@@ -32,9 +32,9 @@ export interface File {
  * @see userService/internal/models/permission.go
  */
 export interface Permission {
-  id: number;
-  name: string;
-  description?: string;
+  ID: number;
+  Name: string;
+  Description?: string;
 }
 
 /**
@@ -42,10 +42,10 @@ export interface Permission {
  * @see userService/internal/models/role.go
  */
 export interface Role {
-  id: number;
-  name: string;
-  description?: string;
-  permissions: Permission[];
+  ID: number;
+  Name: string;
+  Description?: string;
+  Permissions: Permission[];
 }
 
 /**
@@ -53,15 +53,13 @@ export interface Role {
  * @see userService/internal/models/user.go
  */
 export interface User {
-  id: string;
-  username: string;
-  email: string;
-  description?: string;
-  gender?: string;
-  age?: number;
-  role: Role;
-  createdAt: string;
-  updatedAt: string;
+  ID: string;
+  Username: string;
+  Email: string;
+  Description?: string;
+  Gender?: string;
+  Age?: number;
+  Role: Role
 }
 
 /**

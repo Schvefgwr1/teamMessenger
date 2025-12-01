@@ -135,6 +135,12 @@ func main() {
 
 	r := gin.Default()
 
+	// Отключаем автоматический редирект для trailing slash (чтобы не терялись CORS заголовки)
+	r.RedirectTrailingSlash = false
+
+	// CORS middleware - должен быть первым
+	r.Use(middlewares.CORSMiddleware())
+
 	// Global per-user rate limiting middleware (applied after JWT auth in routes)
 	rateLimitConfig := middlewares.DefaultAPIRateLimitConfig()
 

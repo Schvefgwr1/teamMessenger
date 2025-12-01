@@ -5,6 +5,7 @@ import (
 	"apiService/internal/http_clients"
 	"apiService/internal/services"
 	au "common/contracts/api-user"
+	uc "common/contracts/user-contracts"
 	"context"
 	"errors"
 	"log"
@@ -104,13 +105,13 @@ func (ctrl *UserController) UpdateUser(id uuid.UUID, userRequest *dto.UpdateUser
 }
 
 // GetAllPermissions - получить все разрешения с кешированием
-func (ctrl *UserController) GetAllPermissions() ([]*au.Permission, error) {
+func (ctrl *UserController) GetAllPermissions() ([]*uc.Permission, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
 	// Пытаемся получить из кеша
 	cacheKey := "permissions:all"
-	var cachedPermissions []*au.Permission
+	var cachedPermissions []*uc.Permission
 	err := ctrl.cacheService.Get(ctx, cacheKey, &cachedPermissions)
 	if err == nil {
 		log.Printf("Permissions found in cache")
@@ -132,13 +133,13 @@ func (ctrl *UserController) GetAllPermissions() ([]*au.Permission, error) {
 }
 
 // GetAllRoles - получить все роли с кешированием
-func (ctrl *UserController) GetAllRoles() ([]*au.Role, error) {
+func (ctrl *UserController) GetAllRoles() ([]*uc.Role, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
 	// Пытаемся получить из кеша
 	cacheKey := "roles:all"
-	var cachedRoles []*au.Role
+	var cachedRoles []*uc.Role
 	err := ctrl.cacheService.Get(ctx, cacheKey, &cachedRoles)
 	if err == nil {
 		log.Printf("Roles found in cache")
@@ -160,7 +161,7 @@ func (ctrl *UserController) GetAllRoles() ([]*au.Role, error) {
 }
 
 // CreateRole - создать новую роль с инвалидацией кеша
-func (ctrl *UserController) CreateRole(req *au.CreateRoleRequest) (*au.Role, error) {
+func (ctrl *UserController) CreateRole(req *au.CreateRoleRequest) (*uc.Role, error) {
 	role, err := ctrl.userClient.CreateRole(req)
 	if err != nil {
 		return nil, err

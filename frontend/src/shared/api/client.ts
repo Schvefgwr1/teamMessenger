@@ -1,6 +1,6 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8090';
 
 /**
  * Axios instance для работы с API
@@ -8,6 +8,7 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
 export const apiClient = axios.create({
   baseURL: `${API_BASE_URL}/api/v1`,
   timeout: 30000,
+  withCredentials: true, // Для CORS с credentials
   headers: {
     'Content-Type': 'application/json',
   },

@@ -44,6 +44,12 @@ func StrictRateLimitConfig() RateLimitConfig {
 // Uses sliding window algorithm for accurate rate limiting
 func RateLimitMiddleware(redisClient *redis.Client, config RateLimitConfig) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		// Пропускаем OPTIONS запросы (preflight)
+		if c.Request.Method == "OPTIONS" {
+			c.Next()
+			return
+		}
+
 		// Skip if Redis is not available
 		if redisClient == nil {
 			c.Next()

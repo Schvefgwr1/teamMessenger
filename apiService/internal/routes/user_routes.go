@@ -35,8 +35,8 @@ func RegisterUserRoutes(
 	me.Use(middlewares.RequirePermission("process_your_acc"))
 
 	{
-		me.GET("/", userHandler.GetUser)
-		me.PUT("/", userHandler.UpdateUser)
+		me.GET("", userHandler.GetUser)    // Без trailing slash
+		me.PUT("", userHandler.UpdateUser) // Без trailing slash
 	}
 
 	// -------------------------

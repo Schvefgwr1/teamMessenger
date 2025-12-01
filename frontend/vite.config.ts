@@ -15,14 +15,22 @@ export default defineConfig(({ mode }) => {
     },
     
     server: {
-      port: 3000,
+      port: 3001,
       host: true,
-      // Proxy для локальной разработки
+      // Proxy для локальной разработки (избегаем CORS)
       proxy: {
         '/api': {
-          target: env.VITE_API_URL || 'http://localhost:8080',
+          target: env.VITE_API_URL || 'http://localhost:8090',
           changeOrigin: true,
           secure: false,
+          configure: (proxy, _options) => {
+            proxy.on('proxyReq', (proxyReq, req, _res) => {
+              // Сохраняем оригинальный origin для CORS
+              if (req.headers.origin) {
+                proxyReq.setHeader('Origin', req.headers.origin);
+              }
+            });
+          },
         },
       },
     },

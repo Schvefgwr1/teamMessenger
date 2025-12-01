@@ -7,6 +7,12 @@ import (
 
 func RequirePermission(permission string) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		// Пропускаем OPTIONS запросы (preflight) — они обрабатываются CORS middleware
+		if c.Request.Method == "OPTIONS" {
+			c.Next()
+			return
+		}
+
 		perms, exists := c.Get("permissions")
 		if !exists {
 			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "Permissions not found in context"})

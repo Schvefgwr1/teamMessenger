@@ -15,6 +15,12 @@ import (
 // JWTMiddlewareWithKeyManager создает middleware с динамическим обновлением ключей
 func JWTMiddlewareWithKeyManager(publicKeyManager *services.PublicKeyManager, sessionService *services.SessionService) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		// Пропускаем OPTIONS запросы (preflight) — они обрабатываются CORS middleware
+		if c.Request.Method == "OPTIONS" {
+			c.Next()
+			return
+		}
+
 		type Claims struct {
 			UserID      uuid.UUID `json:"user_id"`
 			Permissions []string  `json:"permissions"`
