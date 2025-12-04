@@ -10,7 +10,8 @@ type ChatResponse struct {
 	ID           uuid.UUID `json:"id"`
 	Name         string    `json:"name"`
 	Description  *string   `json:"description"`
-	AvatarFileID *int      `json:"avatarFileID"`
+	AvatarFileID *int      `json:"avatarFileID,omitempty"`
+	AvatarFile   *fc.File  `json:"avatarFile,omitempty"`
 	IsGroup      bool      `json:"isGroup"`
 	CreatedAt    time.Time `json:"createdAt"`
 }
@@ -87,4 +88,24 @@ type UpdateChatResponse struct {
 type ChangeRoleRequest struct {
 	UserID uuid.UUID `json:"user_id" binding:"required"`
 	RoleID int       `json:"role_id" binding:"required"`
+}
+
+// ChatPermissionItem - permission в ответе
+type ChatPermissionItem struct {
+	ID   int    `json:"id"`
+	Name string `json:"name"`
+}
+
+// MyRoleResponse - ответ с ролью текущего пользователя и его permissions в чате
+type MyRoleResponse struct {
+	RoleID      int                  `json:"roleId"`
+	RoleName    string               `json:"roleName"`
+	Permissions []ChatPermissionItem `json:"permissions"`
+}
+
+// ChatMember - участник чата
+type ChatMember struct {
+	UserID   string `json:"userId"`
+	RoleID   int    `json:"roleId"`
+	RoleName string `json:"roleName"`
 }

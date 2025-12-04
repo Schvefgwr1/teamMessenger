@@ -12,5 +12,6 @@ export { Badge } from './Badge';
 // Оверлеи
 export { Modal } from './Modal';
 export { Dropdown } from './Dropdown';
+export { Popover } from './Popover/Popover';
 export { ToastProvider, toast } from './Toast';
 

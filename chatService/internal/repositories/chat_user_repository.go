@@ -12,6 +12,7 @@ type ChatUserRepository interface {
 	GetUserRole(chatID, userID uuid.UUID) (*models.ChatRole, error)
 	GetChatUserWithRoleAndPermissions(userID, chatID uuid.UUID) (*models.ChatUser, error)
 	GetChatUser(userID, chatID uuid.UUID) (*models.ChatUser, error)
+	GetChatUsers(chatID uuid.UUID) ([]models.ChatUser, error)
 	RemoveUserFromChat(chatID, userID uuid.UUID) error
 	DeleteChatUsersByChatID(chatID uuid.UUID) error
 }
@@ -69,6 +70,17 @@ func (r *chatUserRepository) GetChatUser(userID, chatID uuid.UUID) (*models.Chat
 func (r *chatUserRepository) RemoveUserFromChat(chatID, userID uuid.UUID) error {
 	return r.db.Where("chat_id = ? AND user_id = ?", chatID, userID).
 		Delete(&models.ChatUser{}).Error
+}
+
+func (r *chatUserRepository) GetChatUsers(chatID uuid.UUID) ([]models.ChatUser, error) {
+	var chatUsers []models.ChatUser
+	err := r.db.Preload("Role").
+		Where("chat_id = ?", chatID).
+		Find(&chatUsers).Error
+	if err != nil {
+		return nil, err
+	}
+	return chatUsers, nil
 }
 
 func (r *chatUserRepository) DeleteChatUsersByChatID(chatID uuid.UUID) error {

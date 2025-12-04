@@ -463,3 +463,70 @@ func (h *ChatHandler) ChangeUserRole(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"message": "user role changed successfully"})
 }
+
+// GetMyRoleInChat Получение своей роли в чате
+// @Summary Получить свою роль в чате с permissions
+// @Description Возвращает роль текущего пользователя в чате с полным списком permissions
+// @Tags chats
+// @Produce json
+// @Security BearerAuth
+// @Param chat_id path string true "UUID чата"
+// @Success 200 {object} dto.MyRoleResponseGateway "Роль с permissions"
+// @Failure 400 {object} map[string]interface{} "Некорректный UUID чата"
+// @Failure 401 {object} map[string]interface{} "Пользователь не аутентифицирован"
+// @Failure 404 {object} map[string]interface{} "Пользователь не найден в чате"
+// @Failure 500 {object} map[string]interface{} "Внутренняя ошибка сервера"
+// @Router /chats/{chat_id}/me/role [get]
+func (h *ChatHandler) GetMyRoleInChat(c *gin.Context) {
+	chatID, err := uuid.Parse(c.Param("chat_id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid chat ID"})
+		return
+	}
+
+	userID, err := getUserIDFromContext(c)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+		return
+	}
+
+	role, err := h.chatController.GetMyRoleInChat(chatID, userID)
+	if err != nil {
+		if err.Error() == "user not found in chat" {
+			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, role)
+}
+
+// GetChatMembers Получение списка участников чата
+// @Summary Получить список участников чата
+// @Description Возвращает список всех участников чата с их ролями
+// @Tags chats
+// @Produce json
+// @Security BearerAuth
+// @Param chat_id path string true "UUID чата"
+// @Success 200 {array} dto.ChatMemberResponseGateway "Список участников"
+// @Failure 400 {object} map[string]interface{} "Некорректный UUID чата"
+// @Failure 401 {object} map[string]interface{} "Пользователь не аутентифицирован"
+// @Failure 500 {object} map[string]interface{} "Внутренняя ошибка сервера"
+// @Router /chats/{chat_id}/members [get]
+func (h *ChatHandler) GetChatMembers(c *gin.Context) {
+	chatID, err := uuid.Parse(c.Param("chat_id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid chat ID"})
+		return
+	}
+
+	members, err := h.chatController.GetChatMembers(chatID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, members)
+}

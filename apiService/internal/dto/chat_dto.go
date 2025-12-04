@@ -108,3 +108,18 @@ func (r *ChangeRoleRequestGateway) ToChangeRoleRequest() (*ac.ChangeRoleRequest,
 		RoleID: r.RoleID,
 	}, nil
 }
+
+// MyRoleResponseGateway - ответ с ролью текущего пользователя и его permissions в чате
+// ChatPermissionResponseGateway определён в chat_role_permission_dto.go
+type MyRoleResponseGateway struct {
+	RoleID      int                             `json:"roleId"`
+	RoleName    string                          `json:"roleName"`
+	Permissions []ChatPermissionResponseGateway `json:"permissions"`
+}
+
+// ChatMemberResponseGateway - участник чата для swagger
+type ChatMemberResponseGateway struct {
+	UserID   string `json:"userId"`
+	RoleID   int    `json:"roleId"`
+	RoleName string `json:"roleName"`
+}

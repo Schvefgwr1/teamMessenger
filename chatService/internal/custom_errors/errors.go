@@ -11,6 +11,7 @@ var (
 	ErrEmptyQuery          = errors.New("query parameter cannot be empty")
 	ErrChatNotFound        = errors.New("chat with provided ID not found")
 	ErrUnauthorizedChat    = errors.New("user is not a member of this chat")
+	ErrUserNotInChat       = errors.New("requested user is not a member of this chat")
 )
 
 type GetFileHTTPError struct {

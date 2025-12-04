@@ -87,10 +87,10 @@ func (ctrl *ChatRolePermissionController) GetRoleByID(roleID int) (*dto.ChatRole
 	}, nil
 }
 
-func (ctrl *ChatRolePermissionController) CreateRole(req *dto.CreateRoleRequestGateway) (*dto.ChatRoleResponseGateway, error) {
+func (ctrl *ChatRolePermissionController) CreateRole(req *dto.CreateChatRoleRequestGateway) (*dto.ChatRoleResponseGateway, error) {
 	createReq := &ac.CreateRoleRequest{
 		Name:          req.Name,
-		PermissionIDs: req.PermissionIds,
+		PermissionIDs: req.PermissionIDs,
 	}
 
 	role, err := ctrl.rolePermissionClient.CreateRole(createReq)

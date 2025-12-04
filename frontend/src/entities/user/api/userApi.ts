@@ -1,5 +1,5 @@
 import { apiClient } from '@/shared/api';
-import type { User, Role, Permission, File as ApiFile } from '@/shared/types';
+import type { User, Role, Permission, File as ApiFile, UserBrief, UserSearchResponse } from '@/shared/types';
 
 /**
  * Ответ API при получении пользователя
@@ -69,6 +69,24 @@ export const userApi = {
    */
   createRole: (data: { name: string; description?: string; permissionIds?: number[] }) =>
     apiClient.post('/roles', data),
+
+  /**
+   * Получить краткую информацию о пользователе с ролью в чате
+   * GET /api/v1/users/:userId/brief?chatId=:chatId
+   */
+  getUserBrief: (userId: string, chatId: string) =>
+    apiClient.get<UserBrief>(`/users/${userId}/brief`, {
+      params: { chatId },
+    }),
+
+  /**
+   * Поиск пользователей по имени или email
+   * GET /api/v1/users/search?q=:query&limit=:limit
+   */
+  searchUsers: (query: string, limit?: number) =>
+    apiClient.get<UserSearchResponse>('/searches/users', {
+      params: { q: query, limit: limit || 10 },
+    }),
 };
 
 /**

@@ -307,3 +307,34 @@ func (ctrl *ChatController) ChangeUserRole(chatID, ownerID uuid.UUID, changeRole
 
 	return nil
 }
+
+// GetMyRoleInChat - получение своей роли в чате с permissions
+func (ctrl *ChatController) GetMyRoleInChat(chatID, userID uuid.UUID) (*ac.MyRoleResponse, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	// Пытаемся получить из кеша
+	var cachedRole ac.MyRoleResponse
+	err := ctrl.cacheService.GetChatUserRoleCache(ctx, chatID.String(), userID.String(), &cachedRole)
+	if err == nil {
+		return &cachedRole, nil
+	}
+
+	// Получаем из сервиса
+	role, err := ctrl.chatClient.GetMyRoleInChat(chatID, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Сохраняем в кеш
+	if err := ctrl.cacheService.SetChatUserRoleCache(ctx, chatID.String(), userID.String(), role); err != nil {
+		log.Printf("Failed to cache user role for chat %s user %s: %v", chatID.String(), userID.String(), err)
+	}
+
+	return role, nil
+}
+
+// GetChatMembers - получение списка участников чата
+func (ctrl *ChatController) GetChatMembers(chatID uuid.UUID) ([]*ac.ChatMember, error) {
+	return ctrl.chatClient.GetChatMembers(chatID)
+}

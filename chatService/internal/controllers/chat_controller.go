@@ -40,14 +40,24 @@ func (c *ChatController) GetUserChats(userID uuid.UUID) (*[]dto.ChatResponse, er
 
 	var result []dto.ChatResponse
 	for _, chat := range chats {
-		result = append(result, dto.ChatResponse{
-			ID:           chat.ID,
-			Name:         chat.Name,
-			IsGroup:      chat.IsGroup,
-			Description:  chat.Description,
-			AvatarFileID: chat.AvatarFileID,
-			CreatedAt:    chat.CreatedAt,
-		})
+		chatResponse := dto.ChatResponse{
+			ID:          chat.ID,
+			Name:        chat.Name,
+			IsGroup:     chat.IsGroup,
+			Description: chat.Description,
+			CreatedAt:   chat.CreatedAt,
+		}
+
+		// Загружаем файл аватара если есть
+		if chat.AvatarFileID != nil {
+			file, err := httpClients.GetFileByID(*chat.AvatarFileID)
+			if err == nil && file != nil {
+				chatResponse.AvatarFile = file
+			}
+			// Если ошибка - просто не добавляем аватар, не прерываем процесс
+		}
+
+		result = append(result, chatResponse)
 	}
 	return &result, nil
 }
@@ -288,4 +298,42 @@ func (c *ChatController) BanUser(chatID, userID uuid.UUID) error {
 		return custom_errors.ErrInternalServerError
 	}
 	return c.ChatUserRepo.ChangeUserRole(chatID, userID, bannedRole.ID)
+}
+
+// GetUserRoleInChat возвращает название роли пользователя в чате
+// requesterID - ID пользователя, который делает запрос (для проверки прав доступа)
+func (c *ChatController) GetUserRoleInChat(chatID, userID, requesterID uuid.UUID) (string, error) {
+	// Проверяем, что запрашивающий пользователь является участником чата
+	requesterChatUser, err := c.ChatUserRepo.GetChatUser(requesterID, chatID)
+	if requesterChatUser == nil || err != nil {
+		return "", custom_errors.ErrUnauthorizedChat
+	}
+
+	// Получаем роль запрашиваемого пользователя
+	role, err := c.ChatUserRepo.GetUserRole(chatID, userID)
+	if err != nil {
+		return "", custom_errors.ErrUserNotInChat
+	}
+
+	return role.Name, nil
+}
+
+// GetMyRoleWithPermissions возвращает роль текущего пользователя в чате с полным списком permissions
+func (c *ChatController) GetMyRoleWithPermissions(chatID, userID uuid.UUID) (*models.ChatRole, error) {
+	// Получаем пользователя чата с ролью и permissions
+	chatUser, err := c.ChatUserRepo.GetChatUserWithRoleAndPermissions(userID, chatID)
+	if err != nil {
+		return nil, custom_errors.ErrUserNotInChat
+	}
+
+	return &chatUser.Role, nil
+}
+
+// GetChatMembers возвращает список участников чата с их ролями
+func (c *ChatController) GetChatMembers(chatID uuid.UUID) ([]models.ChatUser, error) {
+	chatUsers, err := c.ChatUserRepo.GetChatUsers(chatID)
+	if err != nil {
+		return nil, custom_errors.NewDatabaseError(err.Error())
+	}
+	return chatUsers, nil
 }

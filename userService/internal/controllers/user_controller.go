@@ -5,7 +5,9 @@ import (
 	fc "common/contracts/file-contracts"
 	httpClients "common/http_clients"
 	"github.com/google/uuid"
+	"log"
 	"userService/internal/custom_errors"
+	"userService/internal/handlers/dto"
 	"userService/internal/models"
 	"userService/internal/repositories"
 )
@@ -83,4 +85,82 @@ func (c *UserController) UpdateUserProfile(req *au.UpdateUserRequest, userId *uu
 	}
 
 	return c.userRepo.UpdateUser(user)
+}
+
+// GetUserBrief возвращает краткую информацию о пользователе с ролью в чате
+func (c *UserController) GetUserBrief(userID uuid.UUID, chatID string, requesterID string) (*dto.UserBriefResponse, error) {
+	user, err := c.userRepo.GetUserByID(userID)
+	if err != nil {
+		return nil, custom_errors.ErrInvalidCredentials
+	}
+
+	response := &dto.UserBriefResponse{
+		Username:    user.Username,
+		Email:       user.Email,
+		Age:         user.Age,
+		Description: user.Description,
+	}
+
+	// Загружаем аватар если есть
+	if user.AvatarFileID != nil {
+		log.Printf("[GetUserBrief] Loading avatar for user %s, avatarFileID: %d", userID.String(), *user.AvatarFileID)
+		file, err := httpClients.GetFileByID(*user.AvatarFileID)
+		if err != nil {
+			log.Printf("[GetUserBrief] Error loading avatar: %v", err)
+		} else if file != nil {
+			log.Printf("[GetUserBrief] Avatar loaded successfully: ID=%d, URL=%s", file.ID, file.URL)
+			response.AvatarFile = file
+		}
+	} else {
+		log.Printf("[GetUserBrief] User %s has no avatar", userID.String())
+	}
+
+	// Получаем роль в чате если передан chatID
+	if chatID != "" && requesterID != "" {
+		log.Printf("[GetUserBrief] Getting chat role for user %s in chat %s, requester: %s", userID.String(), chatID, requesterID)
+		roleResp, err := httpClients.GetUserRoleInChat(chatID, userID.String(), requesterID)
+		if err != nil {
+			log.Printf("[GetUserBrief] Error getting chat role: %v", err)
+		} else if roleResp != nil {
+			log.Printf("[GetUserBrief] Chat role received: %s", roleResp.RoleName)
+			response.ChatRoleName = roleResp.RoleName
+		}
+	} else {
+		log.Printf("[GetUserBrief] chatID or requesterID is empty, skipping chat role. chatID=%s, requesterID=%s", chatID, requesterID)
+	}
+
+	return response, nil
+}
+
+// SearchUsers ищет пользователей по имени или email
+func (c *UserController) SearchUsers(query string, limit int) (*dto.UserSearchResponse, error) {
+	if limit <= 0 || limit > 20 {
+		limit = 10
+	}
+
+	users, err := c.userRepo.SearchUsers(query, limit)
+	if err != nil {
+		return nil, err
+	}
+
+	results := make([]dto.UserSearchResult, 0, len(users))
+	for _, user := range users {
+		result := dto.UserSearchResult{
+			ID:       user.ID.String(),
+			Username: user.Username,
+			Email:    user.Email,
+		}
+
+		// Загружаем аватар если есть
+		if user.AvatarFileID != nil {
+			file, err := httpClients.GetFileByID(*user.AvatarFileID)
+			if err == nil && file != nil {
+				result.AvatarFile = file
+			}
+		}
+
+		results = append(results, result)
+	}
+
+	return &dto.UserSearchResponse{Users: results}, nil
 }

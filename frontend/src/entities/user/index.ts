@@ -11,6 +11,8 @@ export {
   userKeys,
   useCurrentUser,
   useUserById,
+  useUserBrief,
+  useSearchUsers,
   useUpdateProfile,
   useRoles,
   usePermissions,

@@ -641,6 +641,52 @@ const docTemplate = `{
                 }
             }
         },
+        "/chats/user/{user_id}": {
+            "get": {
+                "description": "Возвращает список всех чатов, в которых участвует указанный пользователь",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "chats"
+                ],
+                "summary": "Получить список чатов пользователя",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "UUID пользователя",
+                        "name": "user_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Список чатов пользователя",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/dto.ChatResponse"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Некорректный UUID пользователя",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
         "/chats/{chat_id}": {
             "put": {
                 "description": "Обновляет данные чата: название, описание, аватар, список участников",
@@ -840,37 +886,62 @@ const docTemplate = `{
                 }
             }
         },
-        "/chats/{user_id}": {
+        "/chats/{chat_id}/user-roles/{user_id}": {
             "get": {
-                "description": "Возвращает список всех чатов, в которых участвует указанный пользователь",
+                "description": "Возвращает название роли указанного пользователя в чате",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "chats"
                 ],
-                "summary": "Получить список чатов пользователя",
+                "summary": "Получить роль пользователя в чате",
                 "parameters": [
+                    {
+                        "type": "string",
+                        "description": "UUID чата",
+                        "name": "chat_id",
+                        "in": "path",
+                        "required": true
+                    },
                     {
                         "type": "string",
                         "description": "UUID пользователя",
                         "name": "user_id",
                         "in": "path",
                         "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "UUID запрашивающего пользователя",
+                        "name": "X-User-ID",
+                        "in": "header",
+                        "required": true
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "Список чатов пользователя",
+                        "description": "Роль пользователя в чате",
                         "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/dto.ChatResponse"
-                            }
+                            "$ref": "#/definitions/dto.UserRoleResponse"
                         }
                     },
                     "400": {
-                        "description": "Некорректный UUID пользователя",
+                        "description": "Некорректный UUID",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "403": {
+                        "description": "Нет доступа к чату",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Пользователь не найден в чате",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -891,6 +962,10 @@ const docTemplate = `{
         "dto.ChatResponse": {
             "type": "object",
             "properties": {
+                "avatarFile": {
+                    "description": "AvatarFileSwagger - только для Swagger документации",
+                    "type": "object"
+                },
                 "avatarFileID": {
                     "type": "integer"
                 },
@@ -979,27 +1054,6 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.FileSwagger": {
-            "type": "object",
-            "properties": {
-                "created_at": {
-                    "type": "string"
-                },
-                "file_type": {},
-                "file_type_id": {
-                    "type": "integer"
-                },
-                "id": {
-                    "type": "integer"
-                },
-                "name": {
-                    "type": "string"
-                },
-                "url": {
-                    "type": "string"
-                }
-            }
-        },
         "dto.GetChatMessage": {
             "type": "object",
             "properties": {
@@ -1013,10 +1067,10 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "files": {
-                    "description": "Эта часть будет видна Swagger",
+                    "description": "FilesSwagger - только для Swagger документации (не участвует в JSON сериализации)",
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/dto.FileSwagger"
+                        "type": "object"
                     }
                 },
                 "id": {
@@ -1133,6 +1187,14 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "userID": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.UserRoleResponse": {
+            "type": "object",
+            "properties": {
+                "roleName": {
                     "type": "string"
                 }
             }

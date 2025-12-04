@@ -25,7 +25,7 @@ func NewRolePermissionHandler(controller *controllers.ChatRolePermissionControll
 // @Tags chat-roles
 // @Produce json
 // @Security BearerAuth
-// @Success 200 {array} dto.RoleResponseGateway "Список ролей"
+// @Success 200 {array} dto.ChatRoleResponseGateway "Список ролей"
 // @Failure 500 {object} map[string]interface{} "Внутренняя ошибка сервера"
 // @Router /chat-roles [get]
 func (h *ChatRolePermissionHandler) GetAllRoles(c *gin.Context) {
@@ -44,7 +44,7 @@ func (h *ChatRolePermissionHandler) GetAllRoles(c *gin.Context) {
 // @Produce json
 // @Security BearerAuth
 // @Param role_id path int true "ID роли"
-// @Success 200 {object} dto.RoleResponseGateway "Информация о роли"
+// @Success 200 {object} dto.ChatRoleResponseGateway "Информация о роли"
 // @Failure 400 {object} map[string]interface{} "Некорректный ID роли"
 // @Failure 404 {object} map[string]interface{} "Роль не найдена"
 // @Failure 500 {object} map[string]interface{} "Внутренняя ошибка сервера"
@@ -71,13 +71,13 @@ func (h *ChatRolePermissionHandler) GetRoleByID(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Security BearerAuth
-// @Param role body dto.CreateRoleRequestGateway true "Данные для создания роли"
-// @Success 201 {object} dto.RoleResponseGateway "Созданная роль"
+// @Param role body dto.CreateChatRoleRequestGateway true "Данные для создания роли"
+// @Success 201 {object} dto.ChatRoleResponseGateway "Созданная роль"
 // @Failure 400 {object} map[string]interface{} "Некорректный запрос"
 // @Failure 500 {object} map[string]interface{} "Внутренняя ошибка сервера"
 // @Router /chat-roles [post]
 func (h *ChatRolePermissionHandler) CreateRole(c *gin.Context) {
-	var req dto.CreateRoleRequestGateway
+	var req dto.CreateChatRoleRequestGateway
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -124,8 +124,8 @@ func (h *ChatRolePermissionHandler) DeleteRole(c *gin.Context) {
 // @Produce json
 // @Security BearerAuth
 // @Param role_id path int true "ID роли"
-// @Param permissions body dto.UpdateRolePermissionsRequestGateway true "Новый список permission IDs"
-// @Success 200 {object} dto.RoleResponseGateway "Обновленная роль"
+// @Param permissions body dto.UpdateChatRolePermissionsRequestGateway true "Новый список permission IDs"
+// @Success 200 {object} dto.ChatRoleResponseGateway "Обновленная роль"
 // @Failure 400 {object} map[string]interface{} "Некорректный запрос"
 // @Failure 500 {object} map[string]interface{} "Внутренняя ошибка сервера"
 // @Router /chat-roles/{role_id}/permissions [patch]
@@ -158,7 +158,7 @@ func (h *ChatRolePermissionHandler) UpdateRolePermissions(c *gin.Context) {
 // @Tags chat-permissions
 // @Produce json
 // @Security BearerAuth
-// @Success 200 {array} dto.PermissionResponseGateway "Список permissions"
+// @Success 200 {array} dto.ChatPermissionResponseGateway "Список permissions"
 // @Failure 500 {object} map[string]interface{} "Внутренняя ошибка сервера"
 // @Router /chat-permissions [get]
 func (h *ChatRolePermissionHandler) GetAllPermissions(c *gin.Context) {
@@ -177,8 +177,8 @@ func (h *ChatRolePermissionHandler) GetAllPermissions(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Security BearerAuth
-// @Param permission body dto.CreatePermissionRequestGateway true "Данные для создания permission"
-// @Success 201 {object} dto.PermissionResponseGateway "Созданный permission"
+// @Param permission body dto.CreateChatPermissionRequestGateway true "Данные для создания permission"
+// @Success 201 {object} dto.ChatPermissionResponseGateway "Созданный permission"
 // @Failure 400 {object} map[string]interface{} "Некорректный запрос"
 // @Failure 500 {object} map[string]interface{} "Внутренняя ошибка сервера"
 // @Router /chat-permissions [post]

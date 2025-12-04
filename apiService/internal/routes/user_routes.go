@@ -19,6 +19,16 @@ func RegisterUserRoutes(
 ) {
 	v1 := router.Group("/api/v1")
 
+	searches := v1.Group("/searches")
+	searches.Use(
+		middlewares.JWTMiddlewareWithKeyManager(publicKeyManager, sessionService),
+		middlewares.RateLimitMiddleware(redisClient, rateLimitConfig),
+	)
+
+	{
+		searches.GET("/users", userHandler.SearchUsers)
+	}
+
 	// -------------------------
 	// /api/v1/users
 	// -------------------------
@@ -47,6 +57,7 @@ func RegisterUserRoutes(
 
 	{
 		otherUsers.GET("/:user_id", userHandler.GetUserProfileByID)
+		otherUsers.GET("/:user_id/brief", userHandler.GetUserBrief)
 	}
 
 	// -------------------------

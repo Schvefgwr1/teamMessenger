@@ -11,6 +11,7 @@ export const userKeys = {
   all: ['users'] as const,
   me: () => [...userKeys.all, 'me'] as const,
   detail: (userId: string) => [...userKeys.all, 'detail', userId] as const,
+  brief: (userId: string, chatId: string) => [...userKeys.all, 'brief', userId, chatId] as const,
   roles: () => [...userKeys.all, 'roles'] as const,
   permissions: () => [...userKeys.all, 'permissions'] as const,
 };
@@ -44,6 +45,38 @@ export function useUserById(userId: string | undefined) {
     },
     enabled: !!userId,
     staleTime: 5 * 60 * 1000,
+  });
+}
+
+/**
+ * Хук для получения краткой информации о пользователе с ролью в чате
+ * Используется в UserPopover для отображения информации о собеседнике
+ */
+export function useUserBrief(userId: string | undefined, chatId: string | undefined) {
+  return useQuery({
+    queryKey: userKeys.brief(userId!, chatId!),
+    queryFn: async () => {
+      const response = await userApi.getUserBrief(userId!, chatId!);
+      return response.data;
+    },
+    enabled: !!userId && !!chatId,
+    staleTime: 5 * 60 * 1000, // 5 минут (кешируется на бекенде тоже)
+  });
+}
+
+/**
+ * Хук для поиска пользователей
+ * Используется в форме создания чата для выбора участников
+ */
+export function useSearchUsers(query: string, enabled = true) {
+  return useQuery({
+    queryKey: [...userKeys.all, 'search', query],
+    queryFn: async () => {
+      const response = await userApi.searchUsers(query);
+      return response.data.users;
+    },
+    enabled: enabled && query.length >= 2,
+    staleTime: 30 * 1000, // 30 секунд
   });
 }
 

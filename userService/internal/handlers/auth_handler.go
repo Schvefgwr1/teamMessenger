@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"userService/internal/controllers"
 	"userService/internal/custom_errors"
+	_ "userService/internal/handlers/dto" // для Swagger документации
 )
 
 type AuthHandler struct {
@@ -23,7 +24,7 @@ func NewAuthHandler(authController *controllers.AuthController) *AuthHandler {
 // @Tags auth
 // @Accept json
 // @Produce json
-// @Param user body au.RegisterUserRequest true "Данные для регистрации"
+// @Param user body dto.RegisterUserRequestSwagger true "Данные для регистрации"
 // @Success 201 {object} models.User "Пользователь успешно зарегистрирован"
 // @Failure 400 {object} map[string]interface{} "Некорректный запрос"
 // @Failure 409 {object} map[string]interface{} "Почта или логин уже заняты"

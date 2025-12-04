@@ -2,6 +2,9 @@ basePath: /api/v1
 definitions:
   dto.ChatResponse:
     properties:
+      avatarFile:
+        description: AvatarFileSwagger - только для Swagger документации
+        type: object
       avatarFileID:
         type: integer
       createdAt:
@@ -59,20 +62,6 @@ definitions:
     required:
     - name
     type: object
-  dto.FileSwagger:
-    properties:
-      created_at:
-        type: string
-      file_type: {}
-      file_type_id:
-        type: integer
-      id:
-        type: integer
-      name:
-        type: string
-      url:
-        type: string
-    type: object
   dto.GetChatMessage:
     properties:
       chatID:
@@ -82,9 +71,10 @@ definitions:
       createdAt:
         type: string
       files:
-        description: Эта часть будет видна Swagger
+        description: FilesSwagger - только для Swagger документации (не участвует
+          в JSON сериализации)
         items:
-          $ref: '#/definitions/dto.FileSwagger'
+          type: object
         type: array
       id:
         type: string
@@ -160,6 +150,11 @@ definitions:
       state:
         type: string
       userID:
+        type: string
+    type: object
+  dto.UserRoleResponse:
+    properties:
+      roleName:
         type: string
     type: object
   models.Message:
@@ -609,26 +604,44 @@ paths:
       summary: Изменение роли пользователя в чате
       tags:
       - chats
-  /chats/{user_id}:
+  /chats/{chat_id}/user-roles/{user_id}:
     get:
-      description: Возвращает список всех чатов, в которых участвует указанный пользователь
+      description: Возвращает название роли указанного пользователя в чате
       parameters:
+      - description: UUID чата
+        in: path
+        name: chat_id
+        required: true
+        type: string
       - description: UUID пользователя
         in: path
         name: user_id
+        required: true
+        type: string
+      - description: UUID запрашивающего пользователя
+        in: header
+        name: X-User-ID
         required: true
         type: string
       produces:
       - application/json
       responses:
         "200":
-          description: Список чатов пользователя
+          description: Роль пользователя в чате
           schema:
-            items:
-              $ref: '#/definitions/dto.ChatResponse'
-            type: array
+            $ref: '#/definitions/dto.UserRoleResponse'
         "400":
-          description: Некорректный UUID пользователя
+          description: Некорректный UUID
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: Нет доступа к чату
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Пользователь не найден в чате
           schema:
             additionalProperties: true
             type: object
@@ -637,7 +650,7 @@ paths:
           schema:
             additionalProperties: true
             type: object
-      summary: Получить список чатов пользователя
+      summary: Получить роль пользователя в чате
       tags:
       - chats
   /chats/messages/{chat_id}:
@@ -792,6 +805,37 @@ paths:
       summary: Поиск сообщений в чате
       tags:
       - messages
+  /chats/user/{user_id}:
+    get:
+      description: Возвращает список всех чатов, в которых участвует указанный пользователь
+      parameters:
+      - description: UUID пользователя
+        in: path
+        name: user_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Список чатов пользователя
+          schema:
+            items:
+              $ref: '#/definitions/dto.ChatResponse'
+            type: array
+        "400":
+          description: Некорректный UUID пользователя
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Получить список чатов пользователя
+      tags:
+      - chats
 schemes:
 - http
 swagger: "2.0"

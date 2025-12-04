@@ -8,6 +8,7 @@ import (
 	uc "common/contracts/user-contracts"
 	"context"
 	"errors"
+	"fmt"
 	"log"
 	"mime/multipart"
 	"time"
@@ -200,4 +201,39 @@ func (ctrl *UserController) GetUserProfileByID(userID uuid.UUID) (*au.GetUserRes
 	}
 
 	return userProfile, nil
+}
+
+// GetUserBrief - получить краткую информацию о пользователе с кешированием
+func (ctrl *UserController) GetUserBrief(userID uuid.UUID, chatID string, requesterID uuid.UUID) (*dto.UserBriefResponse, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	// Ключ кеша: user_brief:{userID}:{chatID}
+	cacheKey := fmt.Sprintf("user_brief:%s:%s", userID.String(), chatID)
+
+	// Пытаемся получить из кеша
+	var cachedBrief dto.UserBriefResponse
+	err := ctrl.cacheService.Get(ctx, cacheKey, &cachedBrief)
+	if err == nil {
+		log.Printf("User brief %s for chat %s found in cache", userID.String(), chatID)
+		return &cachedBrief, nil
+	}
+
+	// Получаем из сервиса
+	userBrief, err := ctrl.userClient.GetUserBrief(userID.String(), chatID, requesterID.String())
+	if err != nil {
+		return nil, err
+	}
+
+	// Сохраняем в кеш на 5 минут (роли могут меняться)
+	if err := ctrl.cacheService.Set(ctx, cacheKey, userBrief, 5*time.Minute); err != nil {
+		log.Printf("Failed to cache user brief %s: %v", userID.String(), err)
+	}
+
+	return userBrief, nil
+}
+
+// SearchUsers - поиск пользователей по имени или email
+func (ctrl *UserController) SearchUsers(query string, limit int) (*dto.UserSearchResponse, error) {
+	return ctrl.userClient.SearchUsers(query, limit)
 }
