@@ -195,7 +195,7 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/dto.PermissionResponseGateway"
+                                "$ref": "#/definitions/dto.ChatPermissionResponseGateway"
                             }
                         }
                     },
@@ -232,7 +232,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.CreatePermissionRequestGateway"
+                            "$ref": "#/definitions/dto.CreateChatPermissionRequestGateway"
                         }
                     }
                 ],
@@ -240,7 +240,7 @@ const docTemplate = `{
                     "201": {
                         "description": "Созданный permission",
                         "schema": {
-                            "$ref": "#/definitions/dto.PermissionResponseGateway"
+                            "$ref": "#/definitions/dto.ChatPermissionResponseGateway"
                         }
                     },
                     "400": {
@@ -326,7 +326,7 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/dto.RoleResponseGateway"
+                                "$ref": "#/definitions/dto.ChatRoleResponseGateway"
                             }
                         }
                     },
@@ -363,7 +363,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.CreateRoleRequestGateway"
+                            "$ref": "#/definitions/dto.CreateChatRoleRequestGateway"
                         }
                     }
                 ],
@@ -371,7 +371,7 @@ const docTemplate = `{
                     "201": {
                         "description": "Созданная роль",
                         "schema": {
-                            "$ref": "#/definitions/dto.RoleResponseGateway"
+                            "$ref": "#/definitions/dto.ChatRoleResponseGateway"
                         }
                     },
                     "400": {
@@ -419,7 +419,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Информация о роли",
                         "schema": {
-                            "$ref": "#/definitions/dto.RoleResponseGateway"
+                            "$ref": "#/definitions/dto.ChatRoleResponseGateway"
                         }
                     },
                     "400": {
@@ -521,7 +521,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.UpdateRolePermissionsRequestGateway"
+                            "$ref": "#/definitions/dto.UpdateChatRolePermissionsRequestGateway"
                         }
                     }
                 ],
@@ -529,7 +529,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Обновленная роль",
                         "schema": {
-                            "$ref": "#/definitions/dto.RoleResponseGateway"
+                            "$ref": "#/definitions/dto.ChatRoleResponseGateway"
                         }
                     },
                     "400": {
@@ -1058,6 +1058,68 @@ const docTemplate = `{
                     },
                     "401": {
                         "description": "Пользователь не аутентифицирован",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/chats/{chat_id}/me/role": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Возвращает роль текущего пользователя в чате с полным списком permissions",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "chats"
+                ],
+                "summary": "Получить свою роль в чате с permissions",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "UUID чата",
+                        "name": "chat_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Роль с permissions",
+                        "schema": {
+                            "$ref": "#/definitions/dto.MyRoleResponseGateway"
+                        }
+                    },
+                    "400": {
+                        "description": "Некорректный UUID чата",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Пользователь не аутентифицирован",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Пользователь не найден в чате",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -1786,6 +1848,60 @@ const docTemplate = `{
                 }
             }
         },
+        "/users/search": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Ищет пользователей по частичному совпадению имени или email. Определяет тип поиска автоматически.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "users"
+                ],
+                "summary": "Поиск пользователей по имени или email",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Поисковый запрос (имя или email, минимум 2 символа)",
+                        "name": "q",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Максимальное количество результатов (по умолчанию 10, максимум 20)",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Список найденных пользователей",
+                        "schema": {
+                            "$ref": "#/definitions/dto.UserSearchResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Некорректный запрос",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
         "/users/{user_id}": {
             "get": {
                 "security": [
@@ -1820,6 +1936,61 @@ const docTemplate = `{
                     },
                     "400": {
                         "description": "Некорректный UUID пользователя",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/users/{user_id}/brief": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Возвращает краткую информацию о пользователе: ник, почту, возраст, описание, аватар и роль в чате",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "users"
+                ],
+                "summary": "Получить краткую информацию о пользователе",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "UUID пользователя",
+                        "name": "user_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "UUID чата для получения роли пользователя",
+                        "name": "chatId",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Краткая информация о пользователе",
+                        "schema": {
+                            "$ref": "#/definitions/dto.UserBriefResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Некорректный UUID или отсутствует chatId",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -1919,6 +2090,45 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.ChatPermissionResponseGateway": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.ChatRoleResponseGateway": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "permissions": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.ChatPermissionResponseGateway"
+                    }
+                }
+            }
+        },
+        "dto.CreateChatPermissionRequestGateway": {
+            "type": "object",
+            "required": [
+                "name"
+            ],
+            "properties": {
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
         "dto.CreateChatResponse": {
             "type": "object",
             "properties": {
@@ -1945,7 +2155,7 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.CreatePermissionRequestGateway": {
+        "dto.CreateChatRoleRequestGateway": {
             "type": "object",
             "required": [
                 "name"
@@ -1953,6 +2163,12 @@ const docTemplate = `{
             "properties": {
                 "name": {
                     "type": "string"
+                },
+                "permissionIds": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
                 }
             }
         },
@@ -2002,35 +2218,24 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.PermissionResponseGateway": {
+        "dto.MyRoleResponseGateway": {
             "type": "object",
             "properties": {
-                "id": {
-                    "type": "integer"
-                },
-                "name": {
-                    "type": "string"
-                }
-            }
-        },
-        "dto.RoleResponseGateway": {
-            "type": "object",
-            "properties": {
-                "id": {
-                    "type": "integer"
-                },
-                "name": {
-                    "type": "string"
-                },
                 "permissions": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/dto.PermissionResponseGateway"
+                        "$ref": "#/definitions/dto.ChatPermissionResponseGateway"
                     }
+                },
+                "roleId": {
+                    "type": "integer"
+                },
+                "roleName": {
+                    "type": "string"
                 }
             }
         },
-        "dto.UpdateRolePermissionsRequestGateway": {
+        "dto.UpdateChatRolePermissionsRequestGateway": {
             "type": "object",
             "required": [
                 "permissionIds"
@@ -2041,6 +2246,59 @@ const docTemplate = `{
                     "items": {
                         "type": "integer"
                     }
+                }
+            }
+        },
+        "dto.UserBriefResponse": {
+            "type": "object",
+            "properties": {
+                "age": {
+                    "type": "integer"
+                },
+                "avatarFile": {
+                    "description": "AvatarFileSwagger - только для Swagger документации",
+                    "type": "object"
+                },
+                "chatRoleName": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "username": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.UserSearchResponse": {
+            "type": "object",
+            "properties": {
+                "users": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.UserSearchResult"
+                    }
+                }
+            }
+        },
+        "dto.UserSearchResult": {
+            "type": "object",
+            "properties": {
+                "avatarFile": {
+                    "description": "AvatarFileSwagger - только для Swagger документации",
+                    "type": "object"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "username": {
+                    "type": "string"
                 }
             }
         }

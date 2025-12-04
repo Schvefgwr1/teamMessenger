@@ -1,6 +1,7 @@
 package http_clients
 
 import (
+	"apiService/internal/dto"
 	"bytes"
 	au "common/contracts/api-user"
 	uc "common/contracts/user-contracts"
@@ -23,6 +24,8 @@ type UserClient interface {
 	GetAllPermissions() ([]*uc.Permission, error)
 	GetAllRoles() ([]*uc.Role, error)
 	CreateRole(req *au.CreateRoleRequest) (*uc.Role, error)
+	GetUserBrief(userID, chatID, requesterID string) (*dto.UserBriefResponse, error)
+	SearchUsers(query string, limit int) (*dto.UserSearchResponse, error)
 }
 
 type userClient struct {
@@ -244,4 +247,60 @@ func (c *userClient) CreateRole(req *au.CreateRoleRequest) (*uc.Role, error) {
 	}
 
 	return &role, nil
+}
+
+// GetUserBrief - получить краткую информацию о пользователе
+func (c *userClient) GetUserBrief(userID, chatID, requesterID string) (*dto.UserBriefResponse, error) {
+	url := fmt.Sprintf("%s/api/v1/users/%s/brief?chatId=%s", c.host, userID, chatID)
+
+	req, err := http.NewRequest(http.MethodGet, url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	// Передаем ID запрашивающего пользователя
+	req.Header.Set("X-User-ID", requesterID)
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get user brief: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode >= 400 {
+		bodyBytes, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("user service returned error: %s", string(bodyBytes))
+	}
+
+	// Используем промежуточную структуру для десериализации, т.к. AvatarFile может быть interface{}
+	var userBrief dto.UserBriefResponse
+	if err := json.NewDecoder(resp.Body).Decode(&userBrief); err != nil {
+		return nil, fmt.Errorf("failed to decode user brief response: %w", err)
+	}
+
+	return &userBrief, nil
+}
+
+// SearchUsers - поиск пользователей по имени или email
+func (c *userClient) SearchUsers(query string, limit int) (*dto.UserSearchResponse, error) {
+	url := fmt.Sprintf("%s/api/v1/users/search?q=%s&limit=%d", c.host, query, limit)
+
+	resp, err := http.Get(url)
+	if err != nil {
+		return nil, fmt.Errorf("failed to search users: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode >= 400 {
+		bodyBytes, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("user service returned error: %s", string(bodyBytes))
+	}
+
+	var result dto.UserSearchResponse
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, fmt.Errorf("failed to decode search response: %w", err)
+	}
+
+	return &result, nil
 }

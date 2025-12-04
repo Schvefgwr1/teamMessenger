@@ -7,6 +7,7 @@ export {
 
 export {
   KNOWN_PERMISSIONS,
+  KNOWN_PERMISSIONS as PERMISSIONS, // Алиас для удобства
   isKnownPermission,
   type KnownPermission,
 } from './permissions';

@@ -16,8 +16,11 @@ func RegisterRoutes(router *gin.Engine, authHandler *handlers.AuthHandler, userH
 
 		users := v1.Group("/users")
 		{
+			// Поиск должен быть перед /:user_id чтобы избежать конфликта
+			users.GET("/search", userHandler.SearchUsers)
 			users.GET("/:user_id", userHandler.GetProfile)
 			users.PUT("/:user_id", userHandler.UpdateProfile)
+			users.GET("/:user_id/brief", userHandler.GetUserBrief)
 		}
 
 		roles := v1.Group("/roles")

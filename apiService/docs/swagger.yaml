@@ -10,6 +10,31 @@ definitions:
     - role_id
     - user_id
     type: object
+  dto.ChatPermissionResponseGateway:
+    properties:
+      id:
+        type: integer
+      name:
+        type: string
+    type: object
+  dto.ChatRoleResponseGateway:
+    properties:
+      id:
+        type: integer
+      name:
+        type: string
+      permissions:
+        items:
+          $ref: '#/definitions/dto.ChatPermissionResponseGateway'
+        type: array
+    type: object
+  dto.CreateChatPermissionRequestGateway:
+    properties:
+      name:
+        type: string
+    required:
+    - name
+    type: object
   dto.CreateChatResponse:
     properties:
       avatarFileID:
@@ -27,10 +52,14 @@ definitions:
           type: string
         type: array
     type: object
-  dto.CreatePermissionRequestGateway:
+  dto.CreateChatRoleRequestGateway:
     properties:
       name:
         type: string
+      permissionIds:
+        items:
+          type: integer
+        type: array
     required:
     - name
     type: object
@@ -64,25 +93,18 @@ definitions:
     - login
     - password
     type: object
-  dto.PermissionResponseGateway:
+  dto.MyRoleResponseGateway:
     properties:
-      id:
-        type: integer
-      name:
-        type: string
-    type: object
-  dto.RoleResponseGateway:
-    properties:
-      id:
-        type: integer
-      name:
-        type: string
       permissions:
         items:
-          $ref: '#/definitions/dto.PermissionResponseGateway'
+          $ref: '#/definitions/dto.ChatPermissionResponseGateway'
         type: array
+      roleId:
+        type: integer
+      roleName:
+        type: string
     type: object
-  dto.UpdateRolePermissionsRequestGateway:
+  dto.UpdateChatRolePermissionsRequestGateway:
     properties:
       permissionIds:
         items:
@@ -90,6 +112,41 @@ definitions:
         type: array
     required:
     - permissionIds
+    type: object
+  dto.UserBriefResponse:
+    properties:
+      age:
+        type: integer
+      avatarFile:
+        description: AvatarFileSwagger - только для Swagger документации
+        type: object
+      chatRoleName:
+        type: string
+      description:
+        type: string
+      email:
+        type: string
+      username:
+        type: string
+    type: object
+  dto.UserSearchResponse:
+    properties:
+      users:
+        items:
+          $ref: '#/definitions/dto.UserSearchResult'
+        type: array
+    type: object
+  dto.UserSearchResult:
+    properties:
+      avatarFile:
+        description: AvatarFileSwagger - только для Swagger документации
+        type: object
+      email:
+        type: string
+      id:
+        type: string
+      username:
+        type: string
     type: object
 externalDocs:
   description: OpenAPI
@@ -219,7 +276,7 @@ paths:
           description: Список permissions
           schema:
             items:
-              $ref: '#/definitions/dto.PermissionResponseGateway'
+              $ref: '#/definitions/dto.ChatPermissionResponseGateway'
             type: array
         "500":
           description: Внутренняя ошибка сервера
@@ -241,14 +298,14 @@ paths:
         name: permission
         required: true
         schema:
-          $ref: '#/definitions/dto.CreatePermissionRequestGateway'
+          $ref: '#/definitions/dto.CreateChatPermissionRequestGateway'
       produces:
       - application/json
       responses:
         "201":
           description: Созданный permission
           schema:
-            $ref: '#/definitions/dto.PermissionResponseGateway'
+            $ref: '#/definitions/dto.ChatPermissionResponseGateway'
         "400":
           description: Некорректный запрос
           schema:
@@ -303,7 +360,7 @@ paths:
           description: Список ролей
           schema:
             items:
-              $ref: '#/definitions/dto.RoleResponseGateway'
+              $ref: '#/definitions/dto.ChatRoleResponseGateway'
             type: array
         "500":
           description: Внутренняя ошибка сервера
@@ -325,14 +382,14 @@ paths:
         name: role
         required: true
         schema:
-          $ref: '#/definitions/dto.CreateRoleRequestGateway'
+          $ref: '#/definitions/dto.CreateChatRoleRequestGateway'
       produces:
       - application/json
       responses:
         "201":
           description: Созданная роль
           schema:
-            $ref: '#/definitions/dto.RoleResponseGateway'
+            $ref: '#/definitions/dto.ChatRoleResponseGateway'
         "400":
           description: Некорректный запрос
           schema:
@@ -391,7 +448,7 @@ paths:
         "200":
           description: Информация о роли
           schema:
-            $ref: '#/definitions/dto.RoleResponseGateway'
+            $ref: '#/definitions/dto.ChatRoleResponseGateway'
         "400":
           description: Некорректный ID роли
           schema:
@@ -428,14 +485,14 @@ paths:
         name: permissions
         required: true
         schema:
-          $ref: '#/definitions/dto.UpdateRolePermissionsRequestGateway'
+          $ref: '#/definitions/dto.UpdateChatRolePermissionsRequestGateway'
       produces:
       - application/json
       responses:
         "200":
           description: Обновленная роль
           schema:
-            $ref: '#/definitions/dto.RoleResponseGateway'
+            $ref: '#/definitions/dto.ChatRoleResponseGateway'
         "400":
           description: Некорректный запрос
           schema:
@@ -647,6 +704,47 @@ paths:
       security:
       - BearerAuth: []
       summary: Заблокировать пользователя в чате
+      tags:
+      - chats
+  /chats/{chat_id}/me/role:
+    get:
+      description: Возвращает роль текущего пользователя в чате с полным списком permissions
+      parameters:
+      - description: UUID чата
+        in: path
+        name: chat_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Роль с permissions
+          schema:
+            $ref: '#/definitions/dto.MyRoleResponseGateway'
+        "400":
+          description: Некорректный UUID чата
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Пользователь не аутентифицирован
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Пользователь не найден в чате
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Получить свою роль в чате с permissions
       tags:
       - chats
   /chats/{chat_id}/roles/change:
@@ -1241,6 +1339,43 @@ paths:
       summary: Получить профиль пользователя по ID
       tags:
       - users
+  /users/{user_id}/brief:
+    get:
+      description: 'Возвращает краткую информацию о пользователе: ник, почту, возраст,
+        описание, аватар и роль в чате'
+      parameters:
+      - description: UUID пользователя
+        in: path
+        name: user_id
+        required: true
+        type: string
+      - description: UUID чата для получения роли пользователя
+        in: query
+        name: chatId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Краткая информация о пользователе
+          schema:
+            $ref: '#/definitions/dto.UserBriefResponse'
+        "400":
+          description: Некорректный UUID или отсутствует chatId
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Получить краткую информацию о пользователе
+      tags:
+      - users
   /users/{user_id}/tasks:
     get:
       description: Возвращает список задач указанного пользователя с пагинацией
@@ -1349,6 +1484,43 @@ paths:
       security:
       - BearerAuth: []
       summary: Обновить информацию о текущем пользователе
+      tags:
+      - users
+  /users/search:
+    get:
+      description: Ищет пользователей по частичному совпадению имени или email. Определяет
+        тип поиска автоматически.
+      parameters:
+      - description: Поисковый запрос (имя или email, минимум 2 символа)
+        in: query
+        name: q
+        required: true
+        type: string
+      - description: Максимальное количество результатов (по умолчанию 10, максимум
+          20)
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Список найденных пользователей
+          schema:
+            $ref: '#/definitions/dto.UserSearchResponse'
+        "400":
+          description: Некорректный запрос
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Поиск пользователей по имени или email
       tags:
       - users
 schemes:

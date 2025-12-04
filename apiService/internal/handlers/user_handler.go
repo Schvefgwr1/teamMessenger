@@ -5,6 +5,7 @@ import (
 	"apiService/internal/dto"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"net/http"
@@ -197,4 +198,95 @@ func (h *UserHandler) GetUserProfileByID(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, userProfile)
+}
+
+// GetUserBrief Получение краткой информации о пользователе
+// @Summary Получить краткую информацию о пользователе
+// @Description Возвращает краткую информацию о пользователе: ник, почту, возраст, описание, аватар и роль в чате
+// @Tags users
+// @Produce json
+// @Security BearerAuth
+// @Param user_id path string true "UUID пользователя"
+// @Param chatId query string true "UUID чата для получения роли пользователя"
+// @Success 200 {object} dto.UserBriefResponse "Краткая информация о пользователе"
+// @Failure 400 {object} map[string]interface{} "Некорректный UUID или отсутствует chatId"
+// @Failure 500 {object} map[string]interface{} "Внутренняя ошибка сервера"
+// @Router /users/{user_id}/brief [get]
+func (h *UserHandler) GetUserBrief(c *gin.Context) {
+	userID, err := uuid.Parse(c.Param("user_id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid user ID"})
+		return
+	}
+
+	chatID := c.Query("chatId")
+	if chatID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "chatId query parameter is required"})
+		return
+	}
+
+	// Получаем ID запрашивающего пользователя из JWT (установлен в middleware)
+	requesterIDValue, exists := c.Get("userID")
+	if !exists {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "User ID not found in context"})
+		return
+	}
+
+	requesterID, ok := requesterIDValue.(uuid.UUID)
+	if !ok {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid requester ID format"})
+		return
+	}
+
+	userBrief, err := h.userController.GetUserBrief(userID, chatID, requesterID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, userBrief)
+}
+
+// SearchUsers Поиск пользователей
+// @Summary Поиск пользователей по имени или email
+// @Description Ищет пользователей по частичному совпадению имени или email. Определяет тип поиска автоматически.
+// @Tags users
+// @Produce json
+// @Security BearerAuth
+// @Param q query string true "Поисковый запрос (имя или email, минимум 2 символа)"
+// @Param limit query int false "Максимальное количество результатов (по умолчанию 10, максимум 20)"
+// @Success 200 {object} dto.UserSearchResponse "Список найденных пользователей"
+// @Failure 400 {object} map[string]interface{} "Некорректный запрос"
+// @Failure 500 {object} map[string]interface{} "Внутренняя ошибка сервера"
+// @Router /users/search [get]
+func (h *UserHandler) SearchUsers(c *gin.Context) {
+	query := c.Query("q")
+	if query == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Query parameter 'q' is required"})
+		return
+	}
+
+	if len(query) < 2 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Query must be at least 2 characters"})
+		return
+	}
+
+	limit := 10
+	if limitParam := c.Query("limit"); limitParam != "" {
+		if _, err := fmt.Sscanf(limitParam, "%d", &limit); err != nil {
+			limit = 10
+		}
+	}
+
+	if limit > 20 {
+		limit = 20
+	}
+
+	result, err := h.userController.SearchUsers(query, limit)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, result)
 }

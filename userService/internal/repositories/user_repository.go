@@ -39,3 +39,15 @@ func (r *UserRepository) GetUserByID(id uuid.UUID) (*models.User, error) {
 func (r *UserRepository) UpdateUser(user *models.User) error {
 	return r.db.Omit("Role").Save(user).Error
 }
+
+// SearchUsers ищет пользователей по имени или email
+func (r *UserRepository) SearchUsers(query string, limit int) ([]*models.User, error) {
+	var users []*models.User
+	searchPattern := "%" + query + "%"
+	err := r.db.
+		Preload("Role.Permissions").
+		Where("username ILIKE ? OR email ILIKE ?", searchPattern, searchPattern).
+		Limit(limit).
+		Find(&users).Error
+	return users, err
+}

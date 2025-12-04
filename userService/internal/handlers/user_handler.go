@@ -3,12 +3,14 @@ package handlers
 import (
 	au "common/contracts/api-user"
 	"errors"
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 	"net/http"
 	"userService/internal/controllers"
 	"userService/internal/custom_errors"
+	_ "userService/internal/handlers/dto" // для Swagger документации
 )
 
 type UserHandler struct {
@@ -66,7 +68,7 @@ func (h *UserHandler) GetProfile(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param user_id path string true "UUID пользователя"
-// @Param profile body au.UpdateUserRequest true "Новые данные профиля"
+// @Param profile body dto.UpdateUserRequestSwagger true "Новые данные профиля"
 // @Success 200 {object} map[string]interface{} "Профиль успешно обновлен"
 // @Failure 400 {object} map[string]interface{} "Некорректный запрос или файл"
 // @Failure 401 {object} map[string]interface{} "Неверные учетные данные"
@@ -117,4 +119,90 @@ func (h *UserHandler) UpdateProfile(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Profile updated"})
+}
+
+// GetUserBrief Получение краткой информации о пользователе
+// @Summary Получить краткую информацию о пользователе
+// @Description Возвращает краткую информацию о пользователе: ник, почту, возраст, описание, аватар и роль в чате
+// @Tags users
+// @Produce json
+// @Param user_id path string true "UUID пользователя"
+// @Param chatId query string true "UUID чата для получения роли пользователя"
+// @Param X-User-ID header string true "UUID запрашивающего пользователя"
+// @Success 200 {object} dto.UserBriefResponse "Краткая информация о пользователе"
+// @Failure 400 {object} map[string]interface{} "Неверный UUID"
+// @Failure 401 {object} map[string]interface{} "Неверные учетные данные"
+// @Failure 404 {object} map[string]interface{} "Пользователь не найден"
+// @Router /users/{user_id}/brief [get]
+func (h *UserHandler) GetUserBrief(c *gin.Context) {
+	idParam := c.Param("user_id")
+	userID, err := uuid.Parse(idParam)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user ID"})
+		return
+	}
+
+	chatID := c.Query("chatId")
+	if chatID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "chatId query parameter is required"})
+		return
+	}
+
+	requesterID := c.GetHeader("X-User-ID")
+	if requesterID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "X-User-ID header is required"})
+		return
+	}
+
+	userBrief, err := h.userController.GetUserBrief(userID, chatID, requesterID)
+	if err != nil {
+		if errors.Is(err, custom_errors.ErrInvalidCredentials) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, userBrief)
+}
+
+// SearchUsers Поиск пользователей
+// @Summary Поиск пользователей по имени или email
+// @Description Ищет пользователей по частичному совпадению имени или email
+// @Tags users
+// @Produce json
+// @Param q query string true "Поисковый запрос (имя или email)"
+// @Param limit query int false "Максимальное количество результатов (по умолчанию 10, максимум 20)"
+// @Success 200 {object} dto.UserSearchResponse "Список найденных пользователей"
+// @Failure 400 {object} map[string]interface{} "Некорректный запрос"
+// @Failure 500 {object} map[string]interface{} "Внутренняя ошибка сервера"
+// @Router /users/search [get]
+func (h *UserHandler) SearchUsers(c *gin.Context) {
+	query := c.Query("q")
+	if query == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Query parameter 'q' is required"})
+		return
+	}
+
+	// Минимальная длина запроса
+	if len(query) < 2 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Query must be at least 2 characters"})
+		return
+	}
+
+	limit := 10
+	if limitParam := c.Query("limit"); limitParam != "" {
+		if _, err := fmt.Sscanf(limitParam, "%d", &limit); err != nil {
+			limit = 10
+		}
+	}
+
+	result, err := h.userController.SearchUsers(query, limit)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, result)
 }

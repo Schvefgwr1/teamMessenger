@@ -46,14 +46,21 @@ Dropdown.Content = function DropdownContent({
   );
 };
 
+interface DropdownItemProps extends DropdownMenu.DropdownMenuItemProps {
+  destructive?: boolean;
+  asChild?: boolean;
+}
+
 Dropdown.Item = function DropdownItem({
   children,
   className,
   destructive = false,
+  asChild = false,
   ...props
-}: DropdownMenu.DropdownMenuItemProps & { destructive?: boolean }) {
+}: DropdownItemProps) {
   return (
     <DropdownMenu.Item
+      asChild={asChild}
       className={cn(
         'flex items-center gap-2 px-3 py-2 text-sm rounded-lg cursor-pointer',
         'outline-none transition-colors',

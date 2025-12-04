@@ -40,18 +40,18 @@ export function formatRelativeTime(dateString: string): string {
 }
 
 /**
- * Умное форматирование даты для чата
- * - Сегодня: время
+ * Умное форматирование даты для разделителя в чате
+ * - Сегодня: "Сегодня"
  * - Вчера: "Вчера"
- * - Этот год: день и месяц
- * - Другой год: полная дата
+ * - Этот год: день и месяц (например, "15 дек")
+ * - Другой год: полная дата (например, "15 дек 2023")
  */
 export function formatChatDate(dateString: string): string {
   try {
     const date = parseISO(dateString);
     
     if (isToday(date)) {
-      return format(date, 'HH:mm', { locale: ru });
+      return 'Сегодня';
     }
     
     if (isYesterday(date)) {

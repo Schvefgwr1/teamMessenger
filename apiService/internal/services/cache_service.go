@@ -203,6 +203,16 @@ func (c *CacheService) DeleteChatUserRoleCache(ctx context.Context, chatID, user
 	return c.Delete(ctx, key)
 }
 
+func (c *CacheService) GetChatUserRoleCache(ctx context.Context, chatID, userID string, dest interface{}) error {
+	key := c.ChatUserRoleCacheKey(chatID, userID)
+	return c.Get(ctx, key, dest)
+}
+
+func (c *CacheService) SetChatUserRoleCache(ctx context.Context, chatID, userID string, role interface{}) error {
+	key := c.ChatUserRoleCacheKey(chatID, userID)
+	return c.Set(ctx, key, role, 15*time.Minute)
+}
+
 // Специализированные методы для задач
 
 func (c *CacheService) TaskCacheKey(taskID int) string {

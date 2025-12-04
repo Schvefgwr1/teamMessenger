@@ -21,6 +21,8 @@ type ChatClient interface {
 	DeleteChat(chatID, userID uuid.UUID) error
 	BanUser(chatID, userID, ownerID uuid.UUID) error
 	ChangeUserRole(chatID, ownerID uuid.UUID, changeRoleReq *ac.ChangeRoleRequest) error
+	GetMyRoleInChat(chatID, userID uuid.UUID) (*ac.MyRoleResponse, error)
+	GetChatMembers(chatID uuid.UUID) ([]*ac.ChatMember, error)
 }
 
 type chatClient struct {
@@ -32,7 +34,7 @@ func NewChatClient(host string) ChatClient {
 }
 
 func (c *chatClient) GetUserChats(userID uuid.UUID) ([]*ac.ChatResponse, error) {
-	url := fmt.Sprintf("%s/api/v1/chats/%s", c.host, userID.String())
+	url := fmt.Sprintf("%s/api/v1/chats/user/%s", c.host, userID.String())
 
 	resp, err := http.Get(url)
 	if err != nil {
@@ -293,4 +295,62 @@ func (c *chatClient) ChangeUserRole(chatID, ownerID uuid.UUID, changeRoleReq *ac
 	}
 
 	return nil
+}
+
+// GetMyRoleInChat - получение своей роли в чате с permissions
+func (c *chatClient) GetMyRoleInChat(chatID, userID uuid.UUID) (*ac.MyRoleResponse, error) {
+	url := fmt.Sprintf("%s/api/v1/chats/%s/me/role", c.host, chatID.String())
+
+	httpReq, err := http.NewRequest(http.MethodGet, url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	httpReq.Header.Set("X-User-ID", userID.String())
+
+	client := &http.Client{}
+	resp, err := client.Do(httpReq)
+	if err != nil {
+		return nil, fmt.Errorf("request to chat service failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusNotFound {
+		return nil, fmt.Errorf("user not found in chat")
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		bodyBytes, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("chat service returned error: status %d, body: %s", resp.StatusCode, string(bodyBytes))
+	}
+
+	var result ac.MyRoleResponse
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	return &result, nil
+}
+
+// GetChatMembers - получение списка участников чата
+func (c *chatClient) GetChatMembers(chatID uuid.UUID) ([]*ac.ChatMember, error) {
+	url := fmt.Sprintf("%s/api/v1/chats/%s/members", c.host, chatID.String())
+
+	resp, err := http.Get(url)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get chat members: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode >= 400 {
+		bodyBytes, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("chat service returned error: %s", string(bodyBytes))
+	}
+
+	var members []*ac.ChatMember
+	if err := json.NewDecoder(resp.Body).Decode(&members); err != nil {
+		return nil, fmt.Errorf("failed to decode members response: %w", err)
+	}
+
+	return members, nil
 }

@@ -22,6 +22,8 @@ func RegisterChatRoutes(router *gin.Engine, chatHandler *handlers.ChatHandler, p
 		chats.DELETE("/:chat_id", chatHandler.DeleteChat)
 		chats.PATCH("/:chat_id/ban/:user_id", chatHandler.BanUser)
 		chats.PATCH("/:chat_id/roles/change", chatHandler.ChangeUserRole)
+		chats.GET("/me/role/:chat_id", chatHandler.GetMyRoleInChat)
+		chats.GET("/members/:chat_id", chatHandler.GetChatMembers)
 		chats.POST("/messages/:chat_id", chatHandler.SendMessage)
 		chats.GET("/messages/:chat_id", chatHandler.GetChatMessages)
 		chats.GET("/search/:chat_id", chatHandler.SearchMessages)

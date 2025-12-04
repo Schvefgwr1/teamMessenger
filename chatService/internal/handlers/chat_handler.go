@@ -62,7 +62,7 @@ func (h *ChatHandler) ChangeUserRole(c *gin.Context) {
 // @Success 200 {array} dto.ChatResponse "Список чатов пользователя"
 // @Failure 400 {object} map[string]interface{} "Некорректный UUID пользователя"
 // @Failure 500 {object} map[string]interface{} "Внутренняя ошибка сервера"
-// @Router /chats/{user_id} [get]
+// @Router /chats/user/{user_id} [get]
 func (h *ChatHandler) GetUserChats(c *gin.Context) {
 	userID, err := uuid.Parse(c.Param("user_id"))
 	if err != nil {
@@ -225,4 +225,143 @@ func (h *ChatHandler) BanUser(c *gin.Context) {
 		return
 	}
 	c.Status(http.StatusOK)
+}
+
+// GetUserRoleInChat Получение роли пользователя в чате
+// @Summary Получить роль пользователя в чате
+// @Description Возвращает название роли указанного пользователя в чате
+// @Tags chats
+// @Produce json
+// @Param chat_id path string true "UUID чата"
+// @Param user_id path string true "UUID пользователя"
+// @Param X-User-ID header string true "UUID запрашивающего пользователя"
+// @Success 200 {object} dto.UserRoleResponse "Роль пользователя в чате"
+// @Failure 400 {object} map[string]interface{} "Некорректный UUID"
+// @Failure 403 {object} map[string]interface{} "Нет доступа к чату"
+// @Failure 404 {object} map[string]interface{} "Пользователь не найден в чате"
+// @Failure 500 {object} map[string]interface{} "Внутренняя ошибка сервера"
+// @Router /chats/{chat_id}/user-roles/{user_id} [get]
+func (h *ChatHandler) GetUserRoleInChat(c *gin.Context) {
+	chatID, err := uuid.Parse(c.Param("chat_id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid chat ID"})
+		return
+	}
+
+	userID, err := uuid.Parse(c.Param("user_id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid user ID"})
+		return
+	}
+
+	requesterIDStr := c.GetHeader("X-User-ID")
+	requesterID, err := uuid.Parse(requesterIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid requester ID"})
+		return
+	}
+
+	roleName, err := h.ChatController.GetUserRoleInChat(chatID, userID, requesterID)
+	if err != nil {
+		switch {
+		case errors.Is(err, custom_errors.ErrUnauthorizedChat):
+			c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
+		case errors.Is(err, custom_errors.ErrUserNotInChat):
+			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		default:
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		}
+		return
+	}
+
+	c.JSON(http.StatusOK, dto.UserRoleResponse{RoleName: roleName})
+}
+
+// GetMyRoleInChat Получение своей роли в чате с permissions
+// @Summary Получить свою роль в чате с permissions
+// @Description Возвращает роль текущего пользователя в чате с полным списком permissions
+// @Tags chats
+// @Produce json
+// @Param chat_id path string true "UUID чата"
+// @Param X-User-ID header string true "UUID пользователя"
+// @Success 200 {object} dto.UserRoleWithPermissionsResponse "Роль с permissions"
+// @Failure 400 {object} map[string]interface{} "Некорректный UUID"
+// @Failure 404 {object} map[string]interface{} "Пользователь не найден в чате"
+// @Failure 500 {object} map[string]interface{} "Внутренняя ошибка сервера"
+// @Router /chats/{chat_id}/me/role [get]
+func (h *ChatHandler) GetMyRoleInChat(c *gin.Context) {
+	chatID, err := uuid.Parse(c.Param("chat_id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid chat ID"})
+		return
+	}
+
+	userIDStr := c.GetHeader("X-User-ID")
+	userID, err := uuid.Parse(userIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid user ID"})
+		return
+	}
+
+	role, err := h.ChatController.GetMyRoleWithPermissions(chatID, userID)
+	if err != nil {
+		switch {
+		case errors.Is(err, custom_errors.ErrUserNotInChat):
+			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		default:
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		}
+		return
+	}
+
+	// Конвертируем permissions в DTO
+	permissions := make([]dto.ChatPermissionResponse, len(role.Permissions))
+	for i, p := range role.Permissions {
+		permissions[i] = dto.ChatPermissionResponse{
+			ID:   p.ID,
+			Name: p.Name,
+		}
+	}
+
+	c.JSON(http.StatusOK, dto.UserRoleWithPermissionsResponse{
+		RoleID:      role.ID,
+		RoleName:    role.Name,
+		Permissions: permissions,
+	})
+}
+
+// GetChatMembers Получение списка участников чата
+// @Summary Получить список участников чата
+// @Description Возвращает список всех участников чата с их ролями
+// @Tags chats
+// @Produce json
+// @Param chat_id path string true "UUID чата"
+// @Success 200 {array} dto.ChatMemberResponse "Список участников"
+// @Failure 400 {object} map[string]interface{} "Некорректный UUID"
+// @Failure 500 {object} map[string]interface{} "Внутренняя ошибка сервера"
+// @Router /chats/{chat_id}/members [get]
+func (h *ChatHandler) GetChatMembers(c *gin.Context) {
+	chatID, err := uuid.Parse(c.Param("chat_id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid chat ID"})
+		return
+	}
+
+	chatUsers, err := h.ChatController.GetChatMembers(chatID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Конвертируем в DTO
+	members := make([]dto.ChatMemberResponse, len(chatUsers))
+	for i, cu := range chatUsers {
+		members[i] = dto.ChatMemberResponse{
+			UserID:   cu.UserID.String(),
+			RoleID:   cu.RoleID,
+			RoleName: cu.Role.Name,
+		}
+	}
+
+	c.JSON(http.StatusOK, members)
 }

@@ -70,6 +70,37 @@ export interface UserWithAvatar extends User {
 }
 
 /**
+ * Краткая информация о пользователе (для popover в чате)
+ * @see apiService/internal/dto/user_brief_dto.go
+ */
+export interface UserBrief {
+  username: string;
+  email: string;
+  age?: number;
+  description?: string;
+  avatarFile?: File;
+  chatRoleName?: string;
+}
+
+/**
+ * Результат поиска пользователя
+ * @see apiService/internal/dto/user_search_dto.go
+ */
+export interface UserSearchResult {
+  id: string;
+  username: string;
+  email: string;
+  avatarFile?: File;
+}
+
+/**
+ * Ответ на поиск пользователей
+ */
+export interface UserSearchResponse {
+  users: UserSearchResult[];
+}
+
+/**
  * Ответ API при получении пользователя
  */
 export interface GetUserResponse {
@@ -112,6 +143,29 @@ export interface ChatRole {
 }
 
 /**
+ * Ответ с ролью текущего пользователя в чате
+ * @see common/contracts/api-chat/chat.go MyRoleResponse
+ */
+export interface MyRoleInChat {
+  roleId: number;
+  roleName: string;
+  permissions: ChatPermission[];
+}
+
+/**
+ * Известные chat permissions для проверки на фронтенде
+ */
+export const CHAT_PERMISSIONS = {
+  EDIT_CHAT: 'edit_chat',
+  DELETE_CHAT: 'delete_chat',
+  BAN_USER: 'ban_user',
+  CHANGE_ROLE: 'change_role',
+  SEND_MESSAGE: 'send_message',
+} as const;
+
+export type ChatPermissionName = typeof CHAT_PERMISSIONS[keyof typeof CHAT_PERMISSIONS];
+
+/**
  * Участник чата
  * @see chatService/internal/models/chat_user.go
  */
@@ -131,32 +185,24 @@ export interface Chat {
   name: string;
   isGroup: boolean;
   description?: string;
-  avatarFileId?: number;
+  avatarFileID?: number;
+  avatarFile?: File;
   createdAt: string;
   users?: ChatUser[];
 }
 
 /**
- * Файл прикреплённый к сообщению
- */
-export interface MessageFile {
-  messageId: string;
-  fileId: number;
-  file?: File;
-}
-
-/**
  * Сообщение
- * @see chatService/internal/models/message.go
+ * @see chatService/internal/handlers/dto/get_chat_messages_dto.go
  */
 export interface Message {
   id: string;
-  chatId: string;
-  senderId?: string;
+  chatID: string;
+  senderID?: string | null;
   content: string;
-  updatedAt?: string;
+  updatedAt?: string | null;
   createdAt: string;
-  files?: MessageFile[];
+  files?: File[] | null;
 }
 
 // ============================================================
