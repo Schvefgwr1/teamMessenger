@@ -32,6 +32,36 @@ func NewChatController(
 	}
 }
 
+func (c *ChatController) GetChatByID(chatID uuid.UUID) (*dto.ChatResponse, error) {
+	chat, err := c.ChatRepo.GetChatByID(chatID)
+	if err != nil {
+		if err.Error() == "record not found" {
+			return nil, custom_errors.ErrChatNotFound
+		}
+		return nil, custom_errors.NewDatabaseError(err.Error())
+	}
+
+	chatResponse := dto.ChatResponse{
+		ID:           chat.ID,
+		Name:         chat.Name,
+		IsGroup:      chat.IsGroup,
+		Description:  chat.Description,
+		AvatarFileID: chat.AvatarFileID,
+		CreatedAt:    chat.CreatedAt,
+	}
+
+	// Загружаем файл аватара если есть
+	if chat.AvatarFileID != nil {
+		file, err := httpClients.GetFileByID(*chat.AvatarFileID)
+		if err == nil && file != nil {
+			chatResponse.AvatarFile = file
+		}
+		// Если ошибка - просто не добавляем аватар, не прерываем процесс
+	}
+
+	return &chatResponse, nil
+}
+
 func (c *ChatController) GetUserChats(userID uuid.UUID) (*[]dto.ChatResponse, error) {
 	chats, err := c.ChatRepo.GetUserChats(userID)
 	if err != nil {

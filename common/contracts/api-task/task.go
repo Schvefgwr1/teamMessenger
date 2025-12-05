@@ -2,14 +2,15 @@ package api_task
 
 import (
 	fc "common/contracts/file-contracts"
-	"github.com/google/uuid"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 // CreateTaskRequest - запрос на создание задачи (должен соответствовать CreateTaskDTO в taskService)
 type CreateTaskRequest struct {
 	Title       string    `json:"title" binding:"required"`
-	Description string    `json:"description"`
+	Description *string   `json:"description"`
 	CreatorID   uuid.UUID `json:"creator_id" binding:"required"`
 	ExecutorID  uuid.UUID `json:"executor_id"`
 	ChatID      uuid.UUID `json:"chat_id"`
@@ -22,8 +23,8 @@ type TaskResponse struct {
 	Title       string     `json:"title"`
 	Description string     `json:"description"`
 	CreatorID   uuid.UUID  `json:"creatorID"`
-	ExecutorID  *uuid.UUID `json:"executor_id,omitempty"`
-	ChatID      *uuid.UUID `json:"chat_id,omitempty"`
+	ExecutorID  *uuid.UUID `json:"executorID,omitempty"`
+	ChatID      *uuid.UUID `json:"chatID,omitempty"`
 	Status      TaskStatus `json:"status"`
 	Files       []TaskFile `json:"files,omitempty"`
 	CreatedAt   time.Time  `json:"createdAt"`

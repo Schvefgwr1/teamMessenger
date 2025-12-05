@@ -2,15 +2,29 @@ package dto
 
 import (
 	fc "common/contracts/file-contracts"
+	"encoding/json"
 	"taskService/internal/models"
 )
 
 type TaskResponse struct {
 	Task *models.Task `json:"task"`
 
-	// Files Swagger override
-	Files *[]fc.File `json:"files" swaggertype:"array,object" swaggerignore:"true"`
+	// Files - реальные данные (скрыто от Swagger)
+	Files *[]fc.File `json:"-" swaggerignore:"true"`
 
-	// Эта часть будет видна Swagger
-	FilesSwagger *[]FileSwagger `json:"files"`
+	// FilesSwagger - только для Swagger документации
+	FilesSwagger *[]FileSwagger `json:"files,omitempty" swaggertype:"array,object"`
+}
+
+// MarshalJSON кастомная сериализация для правильной работы с Files
+func (t TaskResponse) MarshalJSON() ([]byte, error) {
+	// Создаем временную структуру для сериализации, используя только Files
+	aux := struct {
+		Task  *models.Task `json:"task"`
+		Files *[]fc.File   `json:"files,omitempty"`
+	}{
+		Task:  t.Task,
+		Files: t.Files,
+	}
+	return json.Marshal(aux)
 }

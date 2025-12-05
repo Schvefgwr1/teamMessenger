@@ -3,7 +3,6 @@ package controllers
 import (
 	fc "common/contracts/file-contracts"
 	"common/http_clients"
-	"github.com/google/uuid"
 	"log"
 	"strconv"
 	customErrors "taskService/internal/custom_errors"
@@ -11,6 +10,8 @@ import (
 	"taskService/internal/models"
 	"taskService/internal/repositories"
 	"taskService/internal/services"
+
+	"github.com/google/uuid"
 )
 
 type TaskController struct {
@@ -43,14 +44,14 @@ func (c *TaskController) Create(taskDTO *dto.CreateTaskDTO) (*models.Task, error
 	// Получаем информацию о создателе
 	creator, errUser := http_clients.GetUserByID(&taskDTO.CreatorID)
 	if errUser != nil {
-		return nil, customErrors.NewGetUserHTTPError(taskDTO.CreatorID.String(), err.Error())
+		return nil, customErrors.NewGetUserHTTPError(taskDTO.CreatorID.String(), errUser.Error())
 	}
 
 	var executorEmail string
 	if taskDTO.ExecutorID != uuid.Nil {
 		executor, errTask := http_clients.GetUserByID(&taskDTO.ExecutorID)
 		if errTask != nil {
-			return nil, customErrors.NewGetUserHTTPError(taskDTO.ExecutorID.String(), err.Error())
+			return nil, customErrors.NewGetUserHTTPError(taskDTO.ExecutorID.String(), errTask.Error())
 		}
 
 		if executor.User.Email != "" {
@@ -60,20 +61,27 @@ func (c *TaskController) Create(taskDTO *dto.CreateTaskDTO) (*models.Task, error
 
 	if taskDTO.ChatID != uuid.Nil {
 		if _, errChat := http_clients.GetChatByID(taskDTO.ChatID.String()); errChat != nil {
-			return nil, customErrors.NewGetChatHTTPError(taskDTO.ChatID.String(), err.Error())
+			return nil, customErrors.NewGetChatHTTPError(taskDTO.ChatID.String(), errChat.Error())
 		}
 	}
 
 	var taskFiles []models.TaskFile
 	for _, fileID := range taskDTO.FileIDs {
 		if _, errFile := http_clients.GetFileByID(fileID); errFile != nil {
-			return nil, customErrors.NewGetFileHTTPError(fileID, err.Error())
+			return nil, customErrors.NewGetFileHTTPError(fileID, errFile.Error())
 		}
+	}
+
+	var desc string
+	if taskDTO.Description == nil {
+		desc = ""
+	} else {
+		desc = *taskDTO.Description
 	}
 
 	task := &models.Task{
 		Title:       taskDTO.Title,
-		Description: taskDTO.Description,
+		Description: desc,
 		CreatorID:   taskDTO.CreatorID,
 		ExecutorID:  taskDTO.ExecutorID,
 		ChatID:      taskDTO.ChatID,
@@ -135,9 +143,9 @@ func (c *TaskController) GetByID(taskID int) (*dto.TaskResponse, error) {
 	}
 	var files []fc.File
 	for _, taskFile := range task.Files {
-		file, err := http_clients.GetFileByID(taskFile.FileID)
-		if err != nil {
-			return nil, customErrors.NewGetFileHTTPError(taskFile.FileID, err.Error())
+		file, errFile := http_clients.GetFileByID(taskFile.FileID)
+		if errFile != nil {
+			return nil, customErrors.NewGetFileHTTPError(taskFile.FileID, errFile.Error())
 		}
 		files = append(files, *file)
 	}
