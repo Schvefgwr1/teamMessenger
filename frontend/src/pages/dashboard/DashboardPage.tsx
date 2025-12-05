@@ -3,6 +3,7 @@ import { useAuthStore } from '@/entities/session';
 import { Card, Avatar, Badge } from '@/shared/ui';
 import { ROUTES } from '@/shared/constants';
 import { MessageSquare, CheckSquare, User, ChevronRight } from 'lucide-react';
+import { RecentChats, MyTasks } from '@/widgets';
 
 export function DashboardPage() {
   const { user } = useAuthStore();
@@ -90,16 +91,12 @@ export function DashboardPage() {
         </Card>
       </section>
 
-      {/* Recent Activity (placeholder) */}
+      {/* Dashboard Widgets */}
       <section>
-        <h2 className="text-lg font-semibold text-neutral-200 mb-4">
-          Последняя активность
-        </h2>
-        <Card className="text-center py-12">
-          <p className="text-neutral-500">
-            Здесь будет отображаться ваша последняя активность
-          </p>
-        </Card>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <RecentChats />
+          <MyTasks />
+        </div>
       </section>
     </div>
   );

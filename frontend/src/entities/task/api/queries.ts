@@ -51,7 +51,7 @@ function transformTaskToList(
     title: taskToList.title,
     status,
     creatorId: '', // Не приходит в списке
-    createdAt: '', // Не приходит в списке
+    createdAt: taskToList.createdAt || '', // createdAt теперь приходит с бекенда
   };
 }
 
@@ -77,6 +77,7 @@ export function useUserTasks(params?: GetUserTasksParams) {
         tasksList,
         statuses,
         statusesCount: statuses.length,
+        firstTask: tasksList[0], // Показываем первую задачу для проверки полей
       });
       
       // Преобразуем TaskToListResponse[] в Task[]

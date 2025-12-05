@@ -47,6 +47,7 @@ export interface TaskToListResponse {
   id: number;
   title: string;
   status: string; // Название статуса (например, "created")
+  createdAt?: string; // Дата создания (может приходить с бекенда, но не указана в swagger)
 }
 
 /**
