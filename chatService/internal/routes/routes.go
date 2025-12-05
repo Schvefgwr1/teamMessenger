@@ -23,6 +23,8 @@ func RegisterChatRoutes(router *gin.Engine, chatHandler *handlers.ChatHandler, m
 		// Роуты с /:chat_id
 		chatID := chats.Group("/:chat_id")
 		{
+			// Получение чата по ID (должен быть первым, чтобы не конфликтовать с другими роутами)
+			chatID.GET("", chatHandler.GetChatByID)
 			// Получение роли пользователя в чате (без проверки permissions, но с проверкой членства в чате)
 			chatID.GET("/user-roles/:user_id", chatHandler.GetUserRoleInChat)
 			// Получение своей роли с permissions (для текущего пользователя)

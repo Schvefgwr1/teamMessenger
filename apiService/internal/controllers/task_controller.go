@@ -8,9 +8,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/google/uuid"
 	"log"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 type TaskController struct {
@@ -58,14 +59,8 @@ func (ctrl *TaskController) CreateTask(req *dto.CreateTaskRequestGateway, creato
 		Title:       req.Title,
 		Description: req.Description,
 		CreatorID:   creatorID,
+		ExecutorID:  *executorID,
 		FileIDs:     fileIDs,
-	}
-
-	// Устанавливаем ExecutorID (используем uuid.Nil если не указан)
-	if executorID != nil {
-		createReq.ExecutorID = *executorID
-	} else {
-		createReq.ExecutorID = uuid.Nil
 	}
 
 	// Устанавливаем ChatID (используем uuid.Nil если не указан)

@@ -13,6 +13,7 @@ import { RegisterPage } from '@/pages/auth/RegisterPage';
 import { DashboardPage } from '@/pages/dashboard/DashboardPage';
 import { ProfilePage } from '@/pages/profile/ProfilePage';
 import { ChatsPage, ChatDetailPage } from '@/pages/chats';
+import { TasksPage, TaskDetailPage } from '@/pages/tasks';
 import { NotFoundPage } from '@/pages/errors/NotFoundPage';
 import { ForbiddenPage } from '@/pages/errors/ForbiddenPage';
 
@@ -39,8 +40,8 @@ function App() {
                 <Route path={ROUTES.CHATS} element={<ChatsPage />}>
                   <Route path=":chatId" element={<ChatDetailPage />} />
                 </Route>
-                <Route path={ROUTES.TASKS} element={<div className="text-neutral-100">TasksPage (TODO)</div>} />
-                <Route path="/tasks/:taskId" element={<div className="text-neutral-100">TaskDetailPage (TODO)</div>} />
+                <Route path={ROUTES.TASKS} element={<TasksPage />} />
+                <Route path="/tasks/:taskId" element={<TaskDetailPage />} />
               </Route>
             </Route>
 

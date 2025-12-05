@@ -44,6 +44,7 @@ func (r *chatRepository) DeleteChat(chatID uuid.UUID) error {
 
 func (r *chatRepository) GetChatByID(chatID uuid.UUID) (*models.Chat, error) {
 	var chat models.Chat
-	err := r.db.First(&chat, "id = ?", chatID).Error
+	// Явно исключаем загрузку связанных данных (Users и Messages)
+	err := r.db.Omit("Users", "Messages").First(&chat, "id = ?", chatID).Error
 	return &chat, err
 }

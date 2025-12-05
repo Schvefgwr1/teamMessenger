@@ -9,4 +9,6 @@ export {
   formatMessageTime,
 } from './formatDate';
 export { formatFileSize, isFileSizeValid, MAX_FILE_SIZE } from './formatFileSize';
+export { UUID_NIL, isUuidNil, isValidUuid } from './uuid';
+export { capitalizeFirst } from './stringUtils';
 

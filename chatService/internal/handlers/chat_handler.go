@@ -330,6 +330,37 @@ func (h *ChatHandler) GetMyRoleInChat(c *gin.Context) {
 	})
 }
 
+// GetChatByID Получение чата по ID
+// @Summary Получить чат по ID
+// @Description Возвращает информацию о чате по указанному ID (без участников и сообщений)
+// @Tags chats
+// @Produce json
+// @Param chat_id path string true "UUID чата"
+// @Success 200 {object} dto.ChatResponse "Информация о чате"
+// @Failure 400 {object} map[string]interface{} "Некорректный UUID"
+// @Failure 404 {object} map[string]interface{} "Чат не найден"
+// @Failure 500 {object} map[string]interface{} "Внутренняя ошибка сервера"
+// @Router /chats/{chat_id} [get]
+func (h *ChatHandler) GetChatByID(c *gin.Context) {
+	chatID, err := uuid.Parse(c.Param("chat_id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid chat ID"})
+		return
+	}
+
+	chat, err := h.ChatController.GetChatByID(chatID)
+	if err != nil {
+		if errors.Is(err, custom_errors.ErrChatNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, chat)
+}
+
 // GetChatMembers Получение списка участников чата
 // @Summary Получить список участников чата
 // @Description Возвращает список всех участников чата с их ролями

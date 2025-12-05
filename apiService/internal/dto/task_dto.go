@@ -1,16 +1,18 @@
 package dto
 
 import (
-	"github.com/google/uuid"
+	"errors"
 	"mime/multipart"
+
+	"github.com/google/uuid"
 )
 
 // CreateTaskRequestGateway - запрос на создание задачи через API Gateway
 type CreateTaskRequestGateway struct {
 	Title       string                  `form:"title" binding:"required"`
-	Description string                  `form:"description"`
-	ExecutorID  string                  `form:"executor_id"`
-	ChatID      string                  `form:"chat_id"`
+	Description *string                 `form:"description"`
+	ExecutorID  string                  `form:"executor_id" binding:"required"`
+	ChatID      *string                 `form:"chat_id"`
 	Files       []*multipart.FileHeader `form:"files"`
 }
 
@@ -25,10 +27,12 @@ func (req *CreateTaskRequestGateway) ParseUUIDs() (*uuid.UUID, *uuid.UUID, error
 			return nil, nil, err
 		}
 		executorID = &parsed
+	} else {
+		return nil, nil, errors.New("executor_id is required")
 	}
 
-	if req.ChatID != "" {
-		parsed, err := uuid.Parse(req.ChatID)
+	if req.ChatID != nil {
+		parsed, err := uuid.Parse(*req.ChatID)
 		if err != nil {
 			return nil, nil, err
 		}
