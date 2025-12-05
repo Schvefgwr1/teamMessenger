@@ -11,3 +11,6 @@ export { Sidebar, AdminSidebar, useSidebarStore } from './Sidebar';
 export { ChatList, ChatListItem } from './ChatList';
 export { MessageList, MessageInput, ChatHeader } from './ChatWindow';
 
+// Dashboard
+export { RecentChats, MyTasks } from './Dashboard';
+

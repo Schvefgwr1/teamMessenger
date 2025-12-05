@@ -43,9 +43,10 @@ type TaskStatus struct {
 
 // TaskToList - задача для списка
 type TaskToList struct {
-	ID     int    `json:"id"`
-	Title  string `json:"title"`
-	Status string `json:"status"`
+	ID        int       `json:"id"`
+	Title     string    `json:"title"`
+	Status    string    `json:"status"`
+	CreatedAt time.Time `json:"createdAt"`
 }
 
 // TaskListResponse - ответ со списком задач

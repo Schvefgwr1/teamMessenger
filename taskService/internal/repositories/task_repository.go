@@ -48,9 +48,10 @@ func (r *taskRepository) GetUserTasks(userID string, limit, offset int) (*[]dto.
 
 	err := r.db.
 		Table("task_service.tasks AS t").
-		Select("t.id, t.title, s.name AS status").
+		Select("t.id, t.title, s.name AS status, t.created_at").
 		Joins("JOIN task_service.task_statuses s ON t.status = s.id").
 		Where("t.executor_id = ?", userID).
+		Order("t.created_at DESC").
 		Limit(limit).
 		Offset(offset).
 		Scan(&tasks).Error
