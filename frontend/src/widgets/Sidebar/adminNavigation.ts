@@ -3,6 +3,7 @@ import {
   Shield,
   Key,
   Users,
+  UserCog,
   MessageSquare,
   ListChecks,
   type LucideIcon,
@@ -36,6 +37,12 @@ export const adminNavigation: AdminNavItem[] = [
     path: ROUTES.ADMIN_PERMISSIONS,
     icon: Key,
     permission: PERMISSIONS.GET_PERMISSIONS,
+  },
+  {
+    label: 'Изменить роль пользователя',
+    path: ROUTES.ADMIN_CHANGE_USER_ROLE,
+    icon: UserCog,
+    permission: PERMISSIONS.PROCESS_ROLES,
   },
   {
     label: 'Роли чатов',

@@ -16,6 +16,10 @@ export {
   useUpdateProfile,
   useRoles,
   usePermissions,
+  useCreateRole,
+  useUpdateRolePermissions,
+  useDeleteRole,
+  useUpdateUserRole,
 } from './api/queries';
 
 // Lib

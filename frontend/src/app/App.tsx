@@ -16,6 +16,15 @@ import { ChatsPage, ChatDetailPage } from '@/pages/chats';
 import { TasksPage, TaskDetailPage } from '@/pages/tasks';
 import { NotFoundPage } from '@/pages/errors/NotFoundPage';
 import { ForbiddenPage } from '@/pages/errors/ForbiddenPage';
+import {
+  AdminDashboard,
+  RolesPage,
+  PermissionsPage,
+  ChangeUserRolePage,
+  ChatRolesPage,
+  ChatPermissionsPage,
+  TaskStatusesPage,
+} from '@/pages/admin';
 
 function App() {
   return (
@@ -48,12 +57,13 @@ function App() {
             {/* Admin routes (требуют admin права) */}
             <Route element={<AdminRoute />}>
               <Route element={<AdminLayout />}>
-                <Route path={ROUTES.ADMIN} element={<div className="text-neutral-100">AdminDashboard (TODO)</div>} />
-                <Route path={ROUTES.ADMIN_ROLES} element={<div className="text-neutral-100">RolesPage (TODO)</div>} />
-                <Route path={ROUTES.ADMIN_PERMISSIONS} element={<div className="text-neutral-100">PermissionsPage (TODO)</div>} />
-                <Route path={ROUTES.ADMIN_CHAT_ROLES} element={<div className="text-neutral-100">ChatRolesPage (TODO)</div>} />
-                <Route path={ROUTES.ADMIN_CHAT_PERMISSIONS} element={<div className="text-neutral-100">ChatPermissionsPage (TODO)</div>} />
-                <Route path={ROUTES.ADMIN_TASK_STATUSES} element={<div className="text-neutral-100">TaskStatusesPage (TODO)</div>} />
+                <Route path={ROUTES.ADMIN} element={<AdminDashboard />} />
+                <Route path={ROUTES.ADMIN_ROLES} element={<RolesPage />} />
+                <Route path={ROUTES.ADMIN_PERMISSIONS} element={<PermissionsPage />} />
+                <Route path={ROUTES.ADMIN_CHANGE_USER_ROLE} element={<ChangeUserRolePage />} />
+                <Route path={ROUTES.ADMIN_CHAT_ROLES} element={<ChatRolesPage />} />
+                <Route path={ROUTES.ADMIN_CHAT_PERMISSIONS} element={<ChatPermissionsPage />} />
+                <Route path={ROUTES.ADMIN_TASK_STATUSES} element={<TaskStatusesPage />} />
               </Route>
             </Route>
 

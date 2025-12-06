@@ -24,6 +24,9 @@ type UserClient interface {
 	GetAllPermissions() ([]*uc.Permission, error)
 	GetAllRoles() ([]*uc.Role, error)
 	CreateRole(req *au.CreateRoleRequest) (*uc.Role, error)
+	UpdateUserRole(userID string, roleID int) error
+	UpdateRolePermissions(roleID int, permissionIDs []int) error
+	DeleteRole(roleID int) error
 	GetUserBrief(userID, chatID, requesterID string) (*dto.UserBriefResponse, error)
 	SearchUsers(query string, limit int) (*dto.UserSearchResponse, error)
 }
@@ -247,6 +250,89 @@ func (c *userClient) CreateRole(req *au.CreateRoleRequest) (*uc.Role, error) {
 	}
 
 	return &role, nil
+}
+
+// UpdateUserRole - изменить роль пользователя
+func (c *userClient) UpdateUserRole(userID string, roleID int) error {
+	url := fmt.Sprintf("%s/api/v1/users/%s/role", c.host, userID)
+
+	reqBody, err := json.Marshal(map[string]int{"role_id": roleID})
+	if err != nil {
+		return fmt.Errorf("failed to encode request: %w", err)
+	}
+
+	req, err := http.NewRequest("PATCH", url, bytes.NewBuffer(reqBody))
+	if err != nil {
+		return fmt.Errorf("failed to create request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("request to user service failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode >= 400 {
+		bodyBytes, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("user service returned error: %s", string(bodyBytes))
+	}
+
+	return nil
+}
+
+// DeleteRole - удалить роль
+func (c *userClient) DeleteRole(roleID int) error {
+	url := fmt.Sprintf("%s/api/v1/roles/%d", c.host, roleID)
+
+	req, err := http.NewRequest("DELETE", url, nil)
+	if err != nil {
+		return fmt.Errorf("failed to create request: %w", err)
+	}
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("request to user service failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode >= 400 {
+		bodyBytes, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("user service returned error: %s", string(bodyBytes))
+	}
+
+	return nil
+}
+
+// UpdateRolePermissions - обновить permissions роли
+func (c *userClient) UpdateRolePermissions(roleID int, permissionIDs []int) error {
+	url := fmt.Sprintf("%s/api/v1/roles/%d/permissions", c.host, roleID)
+
+	reqBody, err := json.Marshal(map[string]interface{}{
+		"permission_ids": permissionIDs,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to encode request: %w", err)
+	}
+
+	req, err := http.NewRequest("PATCH", url, bytes.NewBuffer(reqBody))
+	if err != nil {
+		return fmt.Errorf("failed to create request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("request to user service failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode >= 400 {
+		bodyBytes, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("user service returned error: %s", string(bodyBytes))
+	}
+
+	return nil
 }
 
 // GetUserBrief - получить краткую информацию о пользователе

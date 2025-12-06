@@ -122,6 +122,22 @@ definitions:
     required:
     - permissionIds
     type: object
+  dto.UpdateRolePermissionsRequestGateway:
+    properties:
+      permission_ids:
+        items:
+          type: integer
+        type: array
+    required:
+    - permission_ids
+    type: object
+  dto.UpdateUserRoleRequestGateway:
+    properties:
+      role_id:
+        type: integer
+    required:
+    - role_id
+    type: object
   dto.UserBriefResponse:
     properties:
       age:
@@ -1109,6 +1125,88 @@ paths:
       summary: Создать новую роль
       tags:
       - users
+  /roles/{role_id}:
+    delete:
+      description: Удаляет роль по указанному ID
+      parameters:
+      - description: ID роли
+        in: path
+        name: role_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Роль успешно удалена
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Некорректный ID роли
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Роль не найдена
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Удалить роль
+      tags:
+      - users
+  /roles/{role_id}/permissions:
+    patch:
+      consumes:
+      - application/json
+      description: Обновляет список permissions для указанной роли
+      parameters:
+      - description: ID роли
+        in: path
+        name: role_id
+        required: true
+        type: integer
+      - description: Список ID permissions
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateRolePermissionsRequestGateway'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Permissions успешно обновлены
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Некорректный запрос
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Роль не найдена
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Обновить permissions роли
+      tags:
+      - users
   /tasks:
     post:
       consumes:
@@ -1421,6 +1519,51 @@ paths:
       security:
       - BearerAuth: []
       summary: Получить краткую информацию о пользователе
+      tags:
+      - users
+  /users/{user_id}/role:
+    patch:
+      consumes:
+      - application/json
+      description: Изменяет роль указанного пользователя
+      parameters:
+      - description: UUID пользователя
+        in: path
+        name: user_id
+        required: true
+        type: string
+      - description: ID новой роли
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateUserRoleRequestGateway'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Роль успешно изменена
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Некорректный запрос
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Пользователь не найден
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Изменить роль пользователя
       tags:
       - users
   /users/{user_id}/tasks:

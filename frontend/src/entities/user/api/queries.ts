@@ -143,3 +143,89 @@ export function usePermissions() {
   });
 }
 
+/**
+ * Хук для создания роли (admin)
+ */
+export function useCreateRole() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: { name: string; description?: string; permissionIds?: number[] }) => {
+      const response = await userApi.createRole(data);
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: userKeys.roles() });
+      toast.success('Роль создана');
+    },
+    onError: (error: Error & { response?: { data?: { error?: string } } }) => {
+      const message = error.response?.data?.error || 'Ошибка создания роли';
+      toast.error(message);
+    },
+  });
+}
+
+/**
+ * Хук для обновления permissions роли (admin)
+ */
+export function useUpdateRolePermissions() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ roleId, permissionIds }: { roleId: number; permissionIds: number[] }) => {
+      await userApi.updateRolePermissions(roleId, permissionIds);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: userKeys.roles() });
+      toast.success('Разрешения роли обновлены');
+    },
+    onError: (error: Error & { response?: { data?: { error?: string } } }) => {
+      const message = error.response?.data?.error || 'Ошибка обновления разрешений роли';
+      toast.error(message);
+    },
+  });
+}
+
+/**
+ * Хук для удаления роли (admin)
+ */
+export function useDeleteRole() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (roleId: number) => {
+      await userApi.deleteRole(roleId);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: userKeys.roles() });
+      toast.success('Роль удалена');
+    },
+    onError: (error: Error & { response?: { data?: { error?: string } } }) => {
+      const message = error.response?.data?.error || 'Ошибка удаления роли';
+      toast.error(message);
+    },
+  });
+}
+
+/**
+ * Хук для изменения роли пользователя (admin)
+ */
+export function useUpdateUserRole() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ userId, roleId }: { userId: string; roleId: number }) => {
+      await userApi.updateUserRole(userId, roleId);
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: userKeys.detail(variables.userId) });
+      queryClient.invalidateQueries({ queryKey: userKeys.roles() });
+      toast.success('Роль пользователя изменена');
+    },
+    onError: (error: Error & { response?: { data?: { error?: string } } }) => {
+      const message = error.response?.data?.error || 'Ошибка изменения роли пользователя';
+      toast.error(message);
+    },
+  });
+}
+

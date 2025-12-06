@@ -173,6 +173,108 @@ func (h *UserHandler) CreateRole(c *gin.Context) {
 	c.JSON(http.StatusCreated, role)
 }
 
+// UpdateUserRole Изменение роли пользователя
+// @Summary Изменить роль пользователя
+// @Description Изменяет роль указанного пользователя
+// @Tags users
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param user_id path string true "UUID пользователя"
+// @Param request body dto.UpdateUserRoleRequestGateway true "ID новой роли"
+// @Success 200 {object} map[string]interface{} "Роль успешно изменена"
+// @Failure 400 {object} map[string]interface{} "Некорректный запрос"
+// @Failure 404 {object} map[string]interface{} "Пользователь не найден"
+// @Failure 500 {object} map[string]interface{} "Внутренняя ошибка сервера"
+// @Router /users/{user_id}/role [patch]
+func (h *UserHandler) UpdateUserRole(c *gin.Context) {
+	userID, err := uuid.Parse(c.Param("user_id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid user ID"})
+		return
+	}
+
+	var req dto.UpdateUserRoleRequestGateway
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	err = h.userController.UpdateUserRole(userID, req.RoleID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "User role updated successfully"})
+}
+
+// UpdateRolePermissions Обновление permissions роли
+// @Summary Обновить permissions роли
+// @Description Обновляет список permissions для указанной роли
+// @Tags users
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param role_id path int true "ID роли"
+// @Param request body dto.UpdateRolePermissionsRequestGateway true "Список ID permissions"
+// @Success 200 {object} map[string]interface{} "Permissions успешно обновлены"
+// @Failure 400 {object} map[string]interface{} "Некорректный запрос"
+// @Failure 404 {object} map[string]interface{} "Роль не найдена"
+// @Failure 500 {object} map[string]interface{} "Внутренняя ошибка сервера"
+// @Router /roles/{role_id}/permissions [patch]
+func (h *UserHandler) UpdateRolePermissions(c *gin.Context) {
+	roleIDParam := c.Param("role_id")
+	var roleID int
+	if _, err := fmt.Sscanf(roleIDParam, "%d", &roleID); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid role ID"})
+		return
+	}
+
+	var req dto.UpdateRolePermissionsRequestGateway
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	err := h.userController.UpdateRolePermissions(roleID, req.PermissionIds)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Role permissions updated successfully"})
+}
+
+// DeleteRole Удаление роли
+// @Summary Удалить роль
+// @Description Удаляет роль по указанному ID
+// @Tags users
+// @Produce json
+// @Security BearerAuth
+// @Param role_id path int true "ID роли"
+// @Success 200 {object} map[string]interface{} "Роль успешно удалена"
+// @Failure 400 {object} map[string]interface{} "Некорректный ID роли"
+// @Failure 404 {object} map[string]interface{} "Роль не найдена"
+// @Failure 500 {object} map[string]interface{} "Внутренняя ошибка сервера"
+// @Router /roles/{role_id} [delete]
+func (h *UserHandler) DeleteRole(c *gin.Context) {
+	roleIDParam := c.Param("role_id")
+	var roleID int
+	if _, err := fmt.Sscanf(roleIDParam, "%d", &roleID); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid role ID"})
+		return
+	}
+
+	err := h.userController.DeleteRole(roleID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Role deleted successfully"})
+}
+
 // GetUserProfileByID Получение профиля пользователя по ID
 // @Summary Получить профиль пользователя по ID
 // @Description Возвращает информацию о пользователе по указанному ID

@@ -166,6 +166,20 @@ export function useChatRoles() {
 }
 
 /**
+ * Получить все permissions чатов
+ */
+export function useChatPermissions() {
+  return useQuery({
+    queryKey: [...chatRolesKeys.all, 'permissions'] as const,
+    queryFn: async () => {
+      const response = await chatRolesApi.getAllPermissions();
+      return response.data;
+    },
+    staleTime: 10 * 60 * 1000, // 10 минут
+  });
+}
+
+/**
  * Получить список участников чата
  */
 export function useChatMembers(chatId: string | undefined) {
@@ -189,6 +203,28 @@ export function hasPermission(
 ): boolean {
   if (!myRole?.permissions) return false;
   return myRole.permissions.some(p => p.name === permissionName);
+}
+
+/**
+ * Хук для обновления permissions роли чата
+ */
+export function useUpdateChatRolePermissions() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ roleId, permissionIds }: { roleId: number; permissionIds: number[] }) => {
+      const response = await chatRolesApi.updateRolePermissions(roleId, { permissionIds });
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: chatRolesKeys.list() });
+      toast.success('Разрешения роли чата обновлены');
+    },
+    onError: (error: Error & { response?: { data?: { error?: string } } }) => {
+      const message = error.response?.data?.error || 'Ошибка обновления разрешений роли чата';
+      toast.error(message);
+    },
+  });
 }
 
 // ============================================================

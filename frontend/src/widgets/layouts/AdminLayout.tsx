@@ -1,13 +1,17 @@
 import { Outlet, Link } from 'react-router-dom';
 import { ArrowLeft, Shield } from 'lucide-react';
 import { AdminSidebar } from '@/widgets/Sidebar/AdminSidebar';
+import { useSidebarStore } from '@/widgets/Sidebar/model/sidebarStore';
 import { ROUTES } from '@/shared/constants';
+import { cn } from '@/shared/lib/cn';
 
 /**
  * Layout для админ-панели
  * Отдельный header с возвратом в приложение, AdminSidebar слева
  */
 export function AdminLayout() {
+  const { isCollapsed } = useSidebarStore();
+
   return (
     <div className="min-h-screen bg-neutral-950 text-neutral-100">
       {/* Admin Header */}
@@ -33,7 +37,13 @@ export function AdminLayout() {
         <AdminSidebar />
 
         {/* Main content area */}
-        <main className="flex-1 ml-64 p-6">
+        <main
+          className={cn(
+            'flex-1 p-6 transition-all duration-300',
+            'overflow-y-auto h-[calc(100vh-4rem)]',
+            isCollapsed ? 'ml-16' : 'ml-64'
+          )}
+        >
           <Outlet />
         </main>
       </div>

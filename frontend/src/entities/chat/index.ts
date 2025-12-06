@@ -19,6 +19,10 @@ export {
   type ChatRoleResponse,
   type SearchMessagesResponse,
   type ChatMemberResponse,
+  type CreateChatRoleRequest,
+  type UpdateChatRolePermissionsRequest,
+  type CreateChatPermissionRequest,
+  type ChatPermissionResponse,
 } from './api/chatApi';
 
 // React Query Hooks
@@ -32,6 +36,7 @@ export {
   useSearchMessages,
   useMyRoleInChat,
   useChatRoles,
+  useChatPermissions,
   useChatMembers,
   hasPermission,
   useCreateChat,
@@ -40,6 +45,7 @@ export {
   useSendMessage,
   useBanUser,
   useChangeUserRole,
+  useUpdateChatRolePermissions,
   type ChatWithAvatar,
 } from './api/queries';
 
