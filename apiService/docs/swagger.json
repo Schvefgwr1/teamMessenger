@@ -1434,6 +1434,130 @@
                 }
             }
         },
+        "/roles/{role_id}": {
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Удаляет роль по указанному ID",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "users"
+                ],
+                "summary": "Удалить роль",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID роли",
+                        "name": "role_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Роль успешно удалена",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Некорректный ID роли",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Роль не найдена",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/roles/{role_id}/permissions": {
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Обновляет список permissions для указанной роли",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "users"
+                ],
+                "summary": "Обновить permissions роли",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID роли",
+                        "name": "role_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Список ID permissions",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.UpdateRolePermissionsRequestGateway"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Permissions успешно обновлены",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Некорректный запрос",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Роль не найдена",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
         "/tasks": {
             "post": {
                 "security": [
@@ -2061,6 +2185,74 @@
                 }
             }
         },
+        "/users/{user_id}/role": {
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Изменяет роль указанного пользователя",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "users"
+                ],
+                "summary": "Изменить роль пользователя",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "UUID пользователя",
+                        "name": "user_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "ID новой роли",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.UpdateUserRoleRequestGateway"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Роль успешно изменена",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Некорректный запрос",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Пользователь не найден",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
         "/users/{user_id}/tasks": {
             "get": {
                 "security": [
@@ -2315,6 +2507,31 @@
                     "items": {
                         "type": "integer"
                     }
+                }
+            }
+        },
+        "dto.UpdateRolePermissionsRequestGateway": {
+            "type": "object",
+            "required": [
+                "permission_ids"
+            ],
+            "properties": {
+                "permission_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                }
+            }
+        },
+        "dto.UpdateUserRoleRequestGateway": {
+            "type": "object",
+            "required": [
+                "role_id"
+            ],
+            "properties": {
+                "role_id": {
+                    "type": "integer"
                 }
             }
         },

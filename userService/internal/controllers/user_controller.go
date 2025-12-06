@@ -164,3 +164,19 @@ func (c *UserController) SearchUsers(query string, limit int) (*dto.UserSearchRe
 
 	return &dto.UserSearchResponse{Users: results}, nil
 }
+
+// UpdateUserRole обновляет роль пользователя
+func (c *UserController) UpdateUserRole(userID uuid.UUID, roleID int) error {
+	user, err := c.userRepo.GetUserByID(userID)
+	if err != nil {
+		return custom_errors.ErrInvalidCredentials
+	}
+
+	existingRole, err := c.roleRepo.GetRoleByID(roleID)
+	if err != nil || existingRole == nil {
+		return custom_errors.NewRoleNotFoundError(roleID)
+	}
+
+	user.RoleID = roleID
+	return c.userRepo.UpdateUser(user)
+}

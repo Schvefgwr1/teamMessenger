@@ -206,6 +206,24 @@ export interface ChatRoleResponse {
   permissions: Array<{ id: number; name: string }>;
 }
 
+export interface CreateChatRoleRequest {
+  name: string;
+  permissionIds?: number[];
+}
+
+export interface UpdateChatRolePermissionsRequest {
+  permissionIds: number[];
+}
+
+export interface CreateChatPermissionRequest {
+  name: string;
+}
+
+export interface ChatPermissionResponse {
+  id: number;
+  name: string;
+}
+
 export const chatRolesApi = {
   /**
    * Получить все роли чатов
@@ -220,6 +238,48 @@ export const chatRolesApi = {
    */
   getRoleById: (roleId: number) =>
     apiClient.get<ChatRoleResponse>(`/chat-roles/${roleId}`),
+
+  /**
+   * Создать роль чата
+   * POST /api/v1/chat-roles
+   */
+  createRole: (data: CreateChatRoleRequest) =>
+    apiClient.post<ChatRoleResponse>('/chat-roles', data),
+
+  /**
+   * Удалить роль чата
+   * DELETE /api/v1/chat-roles/:roleId
+   */
+  deleteRole: (roleId: number) =>
+    apiClient.delete(`/chat-roles/${roleId}`),
+
+  /**
+   * Обновить permissions роли
+   * PATCH /api/v1/chat-roles/:roleId/permissions
+   */
+  updateRolePermissions: (roleId: number, data: UpdateChatRolePermissionsRequest) =>
+    apiClient.patch<ChatRoleResponse>(`/chat-roles/${roleId}/permissions`, data),
+
+  /**
+   * Получить все permissions чатов
+   * GET /api/v1/chat-permissions
+   */
+  getAllPermissions: () =>
+    apiClient.get<ChatPermissionResponse[]>('/chat-permissions'),
+
+  /**
+   * Создать permission чата
+   * POST /api/v1/chat-permissions
+   */
+  createPermission: (data: CreateChatPermissionRequest) =>
+    apiClient.post<ChatPermissionResponse>('/chat-permissions', data),
+
+  /**
+   * Удалить permission чата
+   * DELETE /api/v1/chat-permissions/:permissionId
+   */
+  deletePermission: (permissionId: number) =>
+    apiClient.delete(`/chat-permissions/${permissionId}`),
 };
 
 // ============================================================

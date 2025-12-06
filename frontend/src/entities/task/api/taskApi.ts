@@ -133,6 +133,27 @@ export const taskApi = {
    */
   getAllStatuses: () =>
     apiClient.get<GetTaskStatusesResponse>('/tasks/statuses'),
+
+  /**
+   * Создать статус задачи
+   * POST /api/v1/tasks/statuses
+   */
+  createStatus: (data: { name: string }) =>
+    apiClient.post<TaskStatus>('/tasks/statuses', data),
+
+  /**
+   * Получить статус по ID
+   * GET /api/v1/tasks/statuses/:id
+   */
+  getStatusById: (statusId: number) =>
+    apiClient.get<TaskStatus>(`/tasks/statuses/${statusId}`),
+
+  /**
+   * Удалить статус задачи
+   * DELETE /api/v1/tasks/statuses/:id
+   */
+  deleteStatus: (statusId: number) =>
+    apiClient.delete(`/tasks/statuses/${statusId}`),
 };
 
 // ============================================================

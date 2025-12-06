@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"fmt"
 	"log"
 	"userService/internal/handlers/dto"
 	"userService/internal/models"
@@ -39,4 +40,33 @@ func (c *RoleController) CreateRole(roleDTO *dto.CreateRole) error {
 		role.Permissions = append(role.Permissions, *perm)
 	}
 	return c.roleRepo.CreateRole(role)
+}
+
+func (c *RoleController) DeleteRole(roleID int) error {
+	// Проверяем, существует ли роль
+	_, err := c.roleRepo.GetRoleByID(roleID)
+	if err != nil {
+		return err
+	}
+
+	return c.roleRepo.DeleteRole(roleID)
+}
+
+func (c *RoleController) UpdateRolePermissions(roleID int, permissionIDs []int) error {
+	// Проверяем, существует ли роль
+	_, err := c.roleRepo.GetRoleByID(roleID)
+	if err != nil {
+		return err
+	}
+
+	// Проверяем, что все permissions существуют
+	for _, permID := range permissionIDs {
+		_, err := c.permissionRepo.GetPermissionById(permID)
+		if err != nil {
+			log.Default().Printf("Can't find permission with id: %d, error: %v", permID, err)
+			return fmt.Errorf("permission with id %d not found", permID)
+		}
+	}
+
+	return c.roleRepo.UpdateRolePermissions(roleID, permissionIDs)
 }

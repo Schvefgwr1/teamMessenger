@@ -61,6 +61,16 @@ func RegisterUserRoutes(
 	}
 
 	// -------------------------
+	// /api/v1/users/:user_id/role
+	// -------------------------
+	userRoleUpdate := users.Group("")
+	userRoleUpdate.Use(middlewares.RequirePermission("process_users_roles"))
+
+	{
+		userRoleUpdate.PATCH("/:user_id/role", userHandler.UpdateUserRole)
+	}
+
+	// -------------------------
 	// /api/v1/permissions
 	// -------------------------
 	permissions := v1.Group("/permissions")
@@ -70,7 +80,7 @@ func RegisterUserRoutes(
 		middlewares.RequirePermission("get_permissions"),
 	)
 	{
-		permissions.GET("/", userHandler.GetAllPermissions)
+		permissions.GET("", userHandler.GetAllPermissions)
 	}
 
 	// -------------------------
@@ -83,7 +93,9 @@ func RegisterUserRoutes(
 		middlewares.RequirePermission("process_roles"),
 	)
 	{
-		roles.GET("/", userHandler.GetAllRoles)
-		roles.POST("/", userHandler.CreateRole)
+		roles.GET("", userHandler.GetAllRoles)
+		roles.POST("", userHandler.CreateRole)
+		roles.PATCH("/:role_id/permissions", userHandler.UpdateRolePermissions)
+		roles.DELETE("/:role_id", userHandler.DeleteRole)
 	}
 }

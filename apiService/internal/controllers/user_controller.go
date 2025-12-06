@@ -17,16 +17,18 @@ import (
 )
 
 type UserController struct {
-	fileClient   http_clients.FileClient
-	userClient   http_clients.UserClient
-	cacheService *services.CacheService
+	fileClient     http_clients.FileClient
+	userClient     http_clients.UserClient
+	cacheService   *services.CacheService
+	sessionService *services.SessionService
 }
 
-func NewUserController(fileClient http_clients.FileClient, userClient http_clients.UserClient, cacheService *services.CacheService) *UserController {
+func NewUserController(fileClient http_clients.FileClient, userClient http_clients.UserClient, cacheService *services.CacheService, sessionService *services.SessionService) *UserController {
 	return &UserController{
-		fileClient:   fileClient,
-		userClient:   userClient,
-		cacheService: cacheService,
+		fileClient:     fileClient,
+		userClient:     userClient,
+		cacheService:   cacheService,
+		sessionService: sessionService,
 	}
 }
 
@@ -174,6 +176,61 @@ func (ctrl *UserController) CreateRole(req *au.CreateRoleRequest) (*uc.Role, err
 	_ = ctrl.cacheService.Delete(ctx, cacheKey)
 
 	return role, nil
+}
+
+// UpdateUserRole - изменить роль пользователя с инвалидацией кеша и отзывом сессий
+func (ctrl *UserController) UpdateUserRole(userID uuid.UUID, roleID int) error {
+	err := ctrl.userClient.UpdateUserRole(userID.String(), roleID)
+	if err != nil {
+		return err
+	}
+
+	ctx := context.Background()
+
+	// Инвалидация кеша пользователя
+	_ = ctrl.cacheService.DeleteUserCache(ctx, userID.String())
+
+	// Инвалидация кеша списка ролей (на случай если роль была изменена)
+	cacheKey := "roles:all"
+	_ = ctrl.cacheService.Delete(ctx, cacheKey)
+
+	// Отзыв всех сессий пользователя, так как права в токене могут не соответствовать новой роли
+	if err := ctrl.sessionService.RevokeAllUserSessions(ctx, userID); err != nil {
+		log.Printf("Failed to revoke user sessions for %s: %v", userID.String(), err)
+		// Не возвращаем ошибку, так как основная операция выполнена успешно
+	}
+
+	return nil
+}
+
+// UpdateRolePermissions - обновить permissions роли с инвалидацией кеша
+func (ctrl *UserController) UpdateRolePermissions(roleID int, permissionIDs []int) error {
+	err := ctrl.userClient.UpdateRolePermissions(roleID, permissionIDs)
+	if err != nil {
+		return err
+	}
+
+	// Инвалидация кеша списка ролей
+	ctx := context.Background()
+	cacheKey := "roles:all"
+	_ = ctrl.cacheService.Delete(ctx, cacheKey)
+
+	return nil
+}
+
+// DeleteRole - удалить роль с инвалидацией кеша
+func (ctrl *UserController) DeleteRole(roleID int) error {
+	err := ctrl.userClient.DeleteRole(roleID)
+	if err != nil {
+		return err
+	}
+
+	// Инвалидация кеша списка ролей
+	ctx := context.Background()
+	cacheKey := "roles:all"
+	_ = ctrl.cacheService.Delete(ctx, cacheKey)
+
+	return nil
 }
 
 // GetUserProfileByID - получить профиль пользователя по ID с кешированием

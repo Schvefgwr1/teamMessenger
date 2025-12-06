@@ -55,3 +55,29 @@ func (r *RoleRepository) CreateRole(role *models.Role) error {
 func (r *RoleRepository) DeleteRole(id int) error {
 	return r.db.Delete(&models.Role{}, id).Error
 }
+
+func (r *RoleRepository) UpdateRolePermissions(roleID int, permissionIDs []int) error {
+	tx := r.db.Begin()
+
+	// 1. Удаляем все существующие связи
+	if err := tx.Exec(
+		`DELETE FROM user_service.role_permissions WHERE role_id = ?`,
+		roleID,
+	).Error; err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	// 2. Вставляем новые связи
+	for _, pid := range permissionIDs {
+		if err := tx.Exec(
+			`INSERT INTO user_service.role_permissions (role_id, permission_id) VALUES (?, ?)`,
+			roleID, pid,
+		).Error; err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	return tx.Commit().Error
+}

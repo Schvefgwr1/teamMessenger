@@ -71,6 +71,26 @@ export const userApi = {
     apiClient.post('/roles', data),
 
   /**
+   * Обновить permissions роли (admin)
+   * PATCH /api/v1/roles/:roleId/permissions
+   */
+  updateRolePermissions: (roleId: number, permissionIds: number[]) =>
+    apiClient.patch(`/roles/${roleId}/permissions`, { permission_ids: permissionIds }),
+
+  /**
+   * Удалить роль (admin)
+   * DELETE /api/v1/roles/:roleId
+   */
+  deleteRole: (roleId: number) => apiClient.delete(`/roles/${roleId}`),
+
+  /**
+   * Изменить роль пользователя (admin)
+   * PATCH /api/v1/users/:userId/role
+   */
+  updateUserRole: (userId: string, roleId: number) =>
+    apiClient.patch(`/users/${userId}/role`, { role_id: roleId }),
+
+  /**
    * Получить краткую информацию о пользователе с ролью в чате
    * GET /api/v1/users/:userId/brief?chatId=:chatId
    */
@@ -81,7 +101,7 @@ export const userApi = {
 
   /**
    * Поиск пользователей по имени или email
-   * GET /api/v1/users/search?q=:query&limit=:limit
+   * GET /api/v1/searches/users?q=:query&limit=:limit
    */
   searchUsers: (query: string, limit?: number) =>
     apiClient.get<UserSearchResponse>('/searches/users', {

@@ -25,22 +25,32 @@ Modal.Content = function ModalContent({
   title,
   description,
   showClose = true,
+  size = 'md',
 }: {
   children: React.ReactNode;
   className?: string;
   title?: string;
   description?: string;
   showClose?: boolean;
+  size?: 'sm' | 'md' | 'lg' | 'xl';
 }) {
+  const sizeClasses = {
+    sm: 'max-w-sm',
+    md: 'max-w-lg',
+    lg: 'max-w-2xl',
+    xl: 'max-w-4xl',
+  };
+
   return (
     <Dialog.Portal>
       <Dialog.Overlay className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
       <Dialog.Content
         className={cn(
           'fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50',
-          'w-full max-w-lg max-h-[85vh] overflow-auto',
+          'w-full max-h-[85vh] overflow-y-auto',
           'bg-neutral-900 border border-neutral-800 rounded-xl shadow-xl',
           'p-6',
+          sizeClasses[size],
           'data-[state=open]:animate-in data-[state=closed]:animate-out',
           'data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',
           'data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95',

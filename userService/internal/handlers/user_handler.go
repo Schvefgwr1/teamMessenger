@@ -4,13 +4,14 @@ import (
 	au "common/contracts/api-user"
 	"errors"
 	"fmt"
-	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
-	"gorm.io/gorm"
 	"net/http"
 	"userService/internal/controllers"
 	"userService/internal/custom_errors"
-	_ "userService/internal/handlers/dto" // для Swagger документации
+	dto "userService/internal/handlers/dto" // для Swagger документации
+
+	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
+	"gorm.io/gorm"
 )
 
 type UserHandler struct {
@@ -205,4 +206,51 @@ func (h *UserHandler) SearchUsers(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, result)
+}
+
+// UpdateUserRole Изменение роли пользователя
+// @Summary Изменить роль пользователя
+// @Description Изменяет роль указанного пользователя
+// @Tags users
+// @Accept json
+// @Produce json
+// @Param user_id path string true "UUID пользователя"
+// @Param request body dto.UpdateUserRoleRequest true "ID новой роли"
+// @Success 200 {object} map[string]interface{} "Роль успешно изменена"
+// @Failure 400 {object} map[string]interface{} "Некорректный запрос"
+// @Failure 401 {object} map[string]interface{} "Пользователь не найден"
+// @Failure 500 {object} map[string]interface{} "Внутренняя ошибка сервера"
+// @Router /users/{user_id}/role [patch]
+func (h *UserHandler) UpdateUserRole(c *gin.Context) {
+	userIDParam := c.Param("user_id")
+	userID, err := uuid.Parse(userIDParam)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user ID"})
+		return
+	}
+
+	var req dto.UpdateUserRoleRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request payload: " + err.Error()})
+		return
+	}
+
+	err = h.userController.UpdateUserRole(userID, req.RoleID)
+	if err != nil {
+		errMsg := err.Error()
+
+		var roleNotFoundErr *custom_errors.RoleNotFoundError
+
+		switch {
+		case errors.Is(err, custom_errors.ErrInvalidCredentials):
+			c.JSON(http.StatusNotFound, gin.H{"error": "User not found"}) // 404
+		case errors.As(err, &roleNotFoundErr):
+			c.JSON(http.StatusBadRequest, gin.H{"error": errMsg}) // 400
+		default:
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error: " + errMsg}) // 500
+		}
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "User role updated successfully"})
 }

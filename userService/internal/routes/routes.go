@@ -20,6 +20,7 @@ func RegisterRoutes(router *gin.Engine, authHandler *handlers.AuthHandler, userH
 			users.GET("/search", userHandler.SearchUsers)
 			users.GET("/:user_id", userHandler.GetProfile)
 			users.PUT("/:user_id", userHandler.UpdateProfile)
+			users.PATCH("/:user_id/role", userHandler.UpdateUserRole)
 			users.GET("/:user_id/brief", userHandler.GetUserBrief)
 		}
 
@@ -27,6 +28,8 @@ func RegisterRoutes(router *gin.Engine, authHandler *handlers.AuthHandler, userH
 		{
 			roles.GET("/", roleHandler.GetRoles)
 			roles.POST("/", roleHandler.CreateRole)
+			roles.DELETE("/:role_id", roleHandler.DeleteRole)
+			roles.PATCH("/:role_id/permissions", roleHandler.UpdateRolePermissions)
 		}
 
 		permissions := v1.Group("/permissions")
