@@ -15,3 +15,7 @@ export { Dropdown } from './Dropdown';
 export { Popover } from './Popover/Popover';
 export { ToastProvider, toast } from './Toast';
 
+// Error Handling
+export { ErrorBoundary, ErrorFallback } from './ErrorBoundary';
+export type { ErrorBoundaryProps } from './ErrorBoundary';
+
