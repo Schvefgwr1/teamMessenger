@@ -122,6 +122,7 @@ function EmptyState({ hasSearch, onCreateChat }: EmptyStateProps) {
   );
 }
 
+
 // Skeleton loader
 function ChatListSkeleton() {
   return (
