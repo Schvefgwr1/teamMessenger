@@ -60,7 +60,7 @@ export const adminNavigation: AdminNavItem[] = [
     label: 'Статусы задач',
     path: ROUTES.ADMIN_TASK_STATUSES,
     icon: ListChecks,
-    permission: PERMISSIONS.PROCESS_TASKS_STATUSES,
+    permission: PERMISSIONS.MANAGE_TASK_STATUSES,
   },
 ];
 

@@ -42,36 +42,54 @@ create_schema() {
 # Функция выполнения миграций
 run_migrations() {
     echo "Running migrations from $MIGRATIONS_PATH..."
+    echo "Current directory: $(pwd)"
+    echo "Absolute migrations path: $(realpath "$MIGRATIONS_PATH" 2>/dev/null || echo "$MIGRATIONS_PATH")"
     
     if [ -d "$MIGRATIONS_PATH" ]; then
-        # Проверяем есть ли файлы миграций
-        if ls $MIGRATIONS_PATH/*.up.sql 1> /dev/null 2>&1; then
-            echo "Found migration files:"
-            ls $MIGRATIONS_PATH/*.up.sql
+        echo "Migrations directory exists: $MIGRATIONS_PATH"
+        echo "Contents of migrations directory:"
+        ls -la "$MIGRATIONS_PATH" || echo "Cannot list directory contents"
+        
+        # Используем find для проверки наличия файлов (более надежно)
+        # Сохраняем результат в массив для надежности
+        migration_files=()
+        while IFS= read -r migration_file; do
+            [ -n "$migration_file" ] && migration_files+=("$migration_file")
+        done < <(find "$MIGRATIONS_PATH" -maxdepth 1 -name "*.up.sql" -type f 2>/dev/null | sort)
+        
+        migration_count=${#migration_files[@]}
+        
+        if [ $migration_count -gt 0 ]; then
+            echo "Found $migration_count migration file(s):"
+            for file in "${migration_files[@]}"; do
+                echo "  - $file ($(basename "$file"))"
+            done
             
             # Выполняем миграции в порядке версий
-            for migration_file in $(ls $MIGRATIONS_PATH/*.up.sql | sort); do
-                echo "Applying migration: $migration_file"
+            for migration_file in "${migration_files[@]}"; do
+                echo "Processing migration: $migration_file"
                 
                 # Извлекаем номер версии из имени файла
                 version=$(basename "$migration_file" | cut -d'_' -f1)
+                echo "Migration version: $version"
                 
                 # Проверяем, не была ли уже применена эта миграция
-                migration_applied=$(PGPASSWORD=$DB_PASSWORD psql -h $DB_HOST -p $DB_PORT -U $DB_USER -d $DB_NAME -t -c "
+                # Используем xargs для удаления всех пробельных символов (включая переносы строк)
+                migration_applied=$(PGPASSWORD=$DB_PASSWORD psql -h $DB_HOST -p $DB_PORT -U $DB_USER -d $DB_NAME -t -A -c "
                     SELECT EXISTS (
                         SELECT 1 FROM information_schema.tables 
-                        WHERE table_name = 'schema_migrations'
+                        WHERE table_schema = 'public' AND table_name = 'schema_migrations'
                     );
-                " 2>/dev/null | tr -d ' ')
+                " 2>/dev/null | xargs)
 
                 if [ "$migration_applied" = "t" ]; then
                     # Таблица миграций существует, проверяем конкретную миграцию
-                    already_applied=$(PGPASSWORD=$DB_PASSWORD psql -h $DB_HOST -p $DB_PORT -U $DB_USER -d $DB_NAME -t -c "
+                    already_applied=$(PGPASSWORD=$DB_PASSWORD psql -h $DB_HOST -p $DB_PORT -U $DB_USER -d $DB_NAME -t -A -c "
                         SELECT EXISTS (
                             SELECT 1 FROM schema_migrations 
                             WHERE version = '$version' AND service = '$SERVICE_NAME'
                         );
-                    " 2>/dev/null | tr -d ' ')
+                    " 2>/dev/null | xargs)
                 else
                     # Создаем таблицу для отслеживания миграций
                     echo "Creating schema_migrations table..."
@@ -86,8 +104,20 @@ run_migrations() {
                     already_applied="f"
                 fi
 
-                if [ "$already_applied" = "f" ]; then
+                # Добавляем отладочный вывод
+                echo "Checking migration status: version=$version, service=$SERVICE_NAME"
+                echo "Migration table exists: $migration_applied"
+                echo "Migration already applied: $already_applied"
+
+                if [ "$already_applied" != "t" ]; then
                     echo "Applying new migration $version for service $SERVICE_NAME..."
+                    echo "Migration file path: $migration_file"
+                    
+                    # Проверяем существование файла
+                    if [ ! -f "$migration_file" ]; then
+                        echo "ERROR: Migration file not found: $migration_file"
+                        exit 1
+                    fi
                     
                     # Применяем миграцию
                     if PGPASSWORD=$DB_PASSWORD psql -h $DB_HOST -p $DB_PORT -U $DB_USER -d $DB_NAME -f "$migration_file"; then
@@ -103,11 +133,14 @@ run_migrations() {
                 else
                     echo "Migration $version already applied for service $SERVICE_NAME, skipping..."
                 fi
+                echo "---"
             done
             
             echo "All migrations completed successfully!"
         else
             echo "No migration files found in $MIGRATIONS_PATH"
+            echo "Searching for any .sql files:"
+            find "$MIGRATIONS_PATH" -maxdepth 1 -name "*.sql" -type f || echo "No .sql files found at all"
         fi
     else
         echo "Migrations directory $MIGRATIONS_PATH not found, skipping migrations..."

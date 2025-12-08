@@ -1,9 +1,9 @@
 import { Link, useNavigate } from 'react-router-dom';
-import { Shield, User, LogOut, Settings } from 'lucide-react';
+import { Shield, User, LogOut } from 'lucide-react';
 import { useAuthStore } from '@/entities/session';
 import { useCurrentUser } from '@/entities/user';
 import { Avatar, Dropdown } from '@/shared/ui';
-import { ROUTES } from '@/shared/constants';
+import { ROUTES, PERMISSIONS } from '@/shared/constants';
 
 /**
  * Dropdown меню пользователя в Header
@@ -11,10 +11,19 @@ import { ROUTES } from '@/shared/constants';
  */
 export function UserMenu() {
   const navigate = useNavigate();
-  const { logout } = useAuthStore();
+  const { logout, hasPermission } = useAuthStore();
   // Используем React Query для получения актуальных данных пользователя
   const { data: user, isLoading } = useCurrentUser();
-  const isAdminUser = user?.Role?.Name === 'admin' || user?.Role?.ID === 1;
+  
+  // Проверяем наличие хотя бы одного админского permission для показа админ-панели
+  const hasAdminAccess = 
+    hasPermission(PERMISSIONS.GET_PERMISSIONS) ||
+    hasPermission(PERMISSIONS.PROCESS_ROLES) ||
+    hasPermission(PERMISSIONS.PROCESS_USERS_ROLES) ||
+    hasPermission(PERMISSIONS.PROCESS_CHATS_ROLES) ||
+    hasPermission(PERMISSIONS.PROCESS_CHATS_PERMISSIONS) ||
+    hasPermission(PERMISSIONS.MANAGE_TASK_STATUSES) ||
+    hasPermission(PERMISSIONS.VIEW_FULL_USER_PROFILE);
 
   const handleLogout = () => {
     logout();
@@ -72,17 +81,7 @@ export function UserMenu() {
             </Link>
           </Dropdown.Item>
 
-          <Dropdown.Item asChild>
-            <Link
-              to={ROUTES.PROFILE}
-              className="flex items-center gap-2 w-full"
-            >
-              <Settings size={16} />
-              <span>Настройки</span>
-            </Link>
-          </Dropdown.Item>
-
-          {isAdminUser && (
+          {hasAdminAccess && (
             <Dropdown.Item asChild>
               <Link
                 to={ROUTES.ADMIN}

@@ -50,14 +50,23 @@ func RegisterUserRoutes(
 	}
 
 	// -------------------------
-	// /api/v1/users/:user_id
+	// /api/v1/users/:user_id (полный профиль - только админы)
 	// -------------------------
-	otherUsers := users.Group("")
-	otherUsers.Use(middlewares.RequirePermission("watch_users"))
+	fullProfile := users.Group("")
+	fullProfile.Use(middlewares.RequirePermission("view_full_user_profile"))
 
 	{
-		otherUsers.GET("/:user_id", userHandler.GetUserProfileByID)
-		otherUsers.GET("/:user_id/brief", userHandler.GetUserBrief)
+		fullProfile.GET("/:user_id", userHandler.GetUserProfileByID)
+	}
+
+	// -------------------------
+	// /api/v1/users/:user_id/brief (краткая информация - все пользователи)
+	// -------------------------
+	briefProfile := users.Group("")
+	briefProfile.Use(middlewares.RequirePermission("watch_users"))
+
+	{
+		briefProfile.GET("/:user_id/brief", userHandler.GetUserBrief)
 	}
 
 	// -------------------------

@@ -17,21 +17,27 @@ export const KNOWN_PERMISSIONS = {
   // User management
   PROCESS_YOUR_ACC: 'process_your_acc',
   WATCH_USERS: 'watch_users',
+  VIEW_FULL_USER_PROFILE: 'view_full_user_profile', // Только админы
 
   // Features
   PROCESS_CHATS: 'process_chats',
   PROCESS_TASKS: 'process_tasks',
 
+  // Task statuses
+  VIEW_TASK_STATUSES: 'view_task_statuses', // Пользовательские
+  MANAGE_TASK_STATUSES: 'manage_task_statuses', // Только админы
+
   // Admin - system
   GET_PERMISSIONS: 'get_permissions',
   PROCESS_ROLES: 'process_roles',
+  PROCESS_USERS_ROLES: 'process_users_roles',
 
   // Admin - chat system
   PROCESS_CHATS_ROLES: 'process_chats_roles',
   PROCESS_CHATS_PERMISSIONS: 'process_chats_permissions',
 
-  // Admin - task system
-  PROCESS_TASKS_STATUSES: 'process_tasks_statuses',
+  // Legacy (deprecated, но может использоваться для обратной совместимости)
+  PROCESS_TASKS_STATUSES: 'process_tasks_statuses', // @deprecated - используйте VIEW_TASK_STATUSES или MANAGE_TASK_STATUSES
 } as const;
 
 /**

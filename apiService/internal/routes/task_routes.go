@@ -34,13 +34,23 @@ func RegisterTaskRoutes(
 
 		// == /api/v1/tasks/statuses ==
 		statuses := tasks.Group("/statuses")
-		statuses.Use(middlewares.RequirePermission("process_tasks_statuses"))
+
+		// Просмотр статусов - доступно всем пользователям
+		statusesView := statuses.Group("")
+		statusesView.Use(middlewares.RequirePermission("view_task_statuses"))
 
 		{
-			statuses.GET("", taskHandler.GetAllStatuses)
-			statuses.POST("", taskHandler.CreateStatus)
-			statuses.GET("/:status_id", taskHandler.GetStatusByID)
-			statuses.DELETE("/:status_id", taskHandler.DeleteStatus)
+			statusesView.GET("", taskHandler.GetAllStatuses)
+			statusesView.GET("/:status_id", taskHandler.GetStatusByID)
+		}
+
+		// Управление статусами - только админы
+		statusesManage := statuses.Group("")
+		statusesManage.Use(middlewares.RequirePermission("manage_task_statuses"))
+
+		{
+			statusesManage.POST("", taskHandler.CreateStatus)
+			statusesManage.DELETE("/:status_id", taskHandler.DeleteStatus)
 		}
 	}
 
