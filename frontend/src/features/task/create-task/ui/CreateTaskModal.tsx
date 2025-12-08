@@ -103,10 +103,14 @@ export function CreateTaskModal({ open, onOpenChange }: CreateTaskModalProps) {
     }
 
     try {
+      if (!selectedExecutor?.id) {
+        throw new Error('Исполнитель обязателен');
+      }
+
       await createTask.mutateAsync({
         title: formData.title.trim(),
         description: formData.description.trim() || undefined,
-        executorId: selectedExecutor?.id,
+        executorId: selectedExecutor.id,
         chatId: selectedChatId || undefined,
         files: files.length > 0 ? files : undefined,
       });

@@ -3,7 +3,7 @@ import { LucideIcon } from 'lucide-react';
 import { Button, type ButtonProps } from '../Button';
 import { cn } from '@/shared/lib/cn';
 
-interface EmptyStateProps {
+export interface EmptyStateProps {
   /** Иконка для отображения */
   icon?: LucideIcon;
   /** Заголовок */

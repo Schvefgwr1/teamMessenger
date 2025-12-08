@@ -6,7 +6,7 @@ import { useSearchUsers, useRoles, useUpdateUserRole } from '@/entities/user';
 import { useDebounce } from '@/shared/hooks';
 import { cn } from '@/shared/lib';
 import { toast } from '@/shared/ui';
-import type { UserSearchResult, Role } from '@/shared/types';
+import type { UserSearchResult } from '@/shared/types';
 
 /**
  * Страница изменения роли пользователя

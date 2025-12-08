@@ -61,7 +61,7 @@ export function PermissionsPage() {
 
       {/* Таблица */}
       <DataTable
-        data={filteredPermissions}
+        data={filteredPermissions.map(perm => ({ ...perm, id: perm.ID }))}
         columns={columns}
         isLoading={isLoading}
         emptyMessage="Разрешения не найдены"

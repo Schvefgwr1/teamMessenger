@@ -1,6 +1,6 @@
 import { Shield, Key, Users, MessageSquare, ListChecks, ArrowRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { Card, Badge } from '@/shared/ui';
+import { Card } from '@/shared/ui';
 import { AdminPageLayout } from '@/widgets/AdminPanel';
 import { ROUTES } from '@/shared/constants';
 import { useRoles, usePermissions } from '@/entities/user';
@@ -140,7 +140,7 @@ interface QuickActionLinkProps {
   to: string;
   title: string;
   description: string;
-  icon: React.ComponentType<{ size?: number; className?: string }>;
+  icon: React.ComponentType<any>;
 }
 
 function QuickActionLink({ to, title, description, icon: Icon }: QuickActionLinkProps) {

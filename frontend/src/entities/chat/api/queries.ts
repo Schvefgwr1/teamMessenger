@@ -10,7 +10,6 @@ import {
   type UpdateChatRequest,
   type ChangeUserRoleRequest,
   type MyRoleResponse,
-  type ChatRoleResponse,
 } from './chatApi';
 import { useAuthStore } from '@/entities/session';
 import { toast } from '@/shared/ui';

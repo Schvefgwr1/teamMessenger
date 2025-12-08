@@ -30,7 +30,6 @@ export function UserSearch({
 
   // Определяем тип поиска
   const isEmailSearch = query.includes('@');
-  const searchType = isEmailSearch ? 'email' : 'username';
 
   // Поиск пользователей
   const { data: users, isLoading } = useSearchUsers(debouncedQuery, isOpen);

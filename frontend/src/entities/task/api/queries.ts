@@ -60,7 +60,6 @@ function transformTaskToList(
  */
 export function useUserTasks(params?: GetUserTasksParams) {
   const { user, isAuthenticated } = useAuthStore();
-  const queryClient = useQueryClient();
   
   // Загружаем статусы параллельно
   const { data: statuses = [] } = useTaskStatuses();
@@ -258,7 +257,7 @@ export function useUpdateTaskStatus() {
 
       return { previousTask, previousTasks, taskId };
     },
-    onError: (err, { taskId }, context) => {
+    onError: (_err, { taskId }, context) => {
       // Откатываем при ошибке
       if (context?.previousTask) {
         queryClient.setQueryData(taskKeys.detail(taskId), context.previousTask);
@@ -268,7 +267,7 @@ export function useUpdateTaskStatus() {
       }
       toast.error('Ошибка обновления статуса задачи');
     },
-    onSettled: (data, error, { taskId }) => {
+    onSettled: (_data, _error, { taskId }) => {
       // Перезапрашиваем в любом случае для получения актуальных данных
       queryClient.invalidateQueries({ queryKey: taskKeys.detail(taskId) });
       if (user?.ID) {

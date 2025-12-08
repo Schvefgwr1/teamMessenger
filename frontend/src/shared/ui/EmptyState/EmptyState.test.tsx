@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { EmptyState } from './EmptyState';
-import { Search, MessageSquare } from 'lucide-react';
+import { Search } from 'lucide-react';
 
 describe('EmptyState', () => {
   it('renders with icon', () => {
