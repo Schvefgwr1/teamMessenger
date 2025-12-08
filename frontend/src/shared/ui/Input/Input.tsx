@@ -40,16 +40,28 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
               error && 'border-error focus:ring-error',
               className
             )}
+            aria-invalid={!!error}
+            aria-describedby={
+              error ? `${inputId}-error` : hint ? `${inputId}-hint` : undefined
+            }
             {...props}
           />
           {rightIcon && (
-            <div className="flex absolute right-3 top-1/2 -translate-y-1/2 text-neutral-500">
+            <div className="flex absolute right-3 top-1/2 -translate-y-1/2 text-neutral-500 pointer-events-none">
               {rightIcon}
             </div>
           )}
         </div>
-        {error && <p className="text-sm text-error">{error}</p>}
-        {hint && !error && <p className="text-sm text-neutral-500">{hint}</p>}
+        {error && (
+          <p id={`${inputId}-error`} className="text-sm text-error" role="alert">
+            {error}
+          </p>
+        )}
+        {hint && !error && (
+          <p id={`${inputId}-hint`} className="text-sm text-neutral-500">
+            {hint}
+          </p>
+        )}
       </div>
     );
   }
