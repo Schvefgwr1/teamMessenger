@@ -1,4 +1,4 @@
-export { MessageList } from './MessageList';
+export { MessageList, type MessageListHandle } from './MessageList';
 export { MessageInput } from './MessageInput';
 export { ChatHeader } from './ChatHeader';
 export { UserPopover } from './UserPopover';

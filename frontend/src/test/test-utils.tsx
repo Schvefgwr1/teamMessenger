@@ -35,9 +35,8 @@ function AllTheProviders({ children }: AllTheProvidersProps) {
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
-        <ToastProvider>
-          {children}
-        </ToastProvider>
+        <ToastProvider />
+        {children}
       </BrowserRouter>
     </QueryClientProvider>
   );

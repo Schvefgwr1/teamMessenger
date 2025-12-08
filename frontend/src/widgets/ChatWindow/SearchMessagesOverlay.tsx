@@ -3,7 +3,6 @@ import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, X, Loader2 } from 'lucide-react';
 import { Input, Avatar } from '@/shared/ui';
-import { cn } from '@/shared/lib/cn';
 import { useSearchMessages } from '@/entities/chat';
 import { useDebounce } from '@/shared/hooks';
 import { formatMessageTime } from '@/shared/lib/formatDate';

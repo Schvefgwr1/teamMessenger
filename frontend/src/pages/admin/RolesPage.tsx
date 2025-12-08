@@ -108,7 +108,7 @@ export function RolesPage() {
 
       {/* Таблица */}
       <DataTable
-        data={filteredRoles}
+        data={filteredRoles.map(role => ({ ...role, id: role.ID }))}
         columns={columns}
         isLoading={isLoading}
         emptyMessage="Роли не найдены"

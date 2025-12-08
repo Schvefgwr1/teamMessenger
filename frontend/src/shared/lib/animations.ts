@@ -7,49 +7,43 @@ import { Variants } from 'framer-motion';
 /** Простое появление */
 export const fadeIn: Variants = {
   initial: { opacity: 0 },
-  animate: { opacity: 1 },
-  exit: { opacity: 0 },
-  transition: { duration: 0.2 },
+  animate: { opacity: 1, transition: { duration: 0.2 } },
+  exit: { opacity: 0, transition: { duration: 0.2 } },
 };
 
 /** Появление с движением вверх */
 export const slideUp: Variants = {
   initial: { opacity: 0, y: 20 },
-  animate: { opacity: 1, y: 0 },
-  exit: { opacity: 0, y: 20 },
-  transition: { duration: 0.3, ease: 'easeOut' },
+  animate: { opacity: 1, y: 0, transition: { duration: 0.3, ease: 'easeOut' } },
+  exit: { opacity: 0, y: 20, transition: { duration: 0.3, ease: 'easeOut' } },
 };
 
 /** Появление с движением вниз */
 export const slideDown: Variants = {
   initial: { opacity: 0, y: -20 },
-  animate: { opacity: 1, y: 0 },
-  exit: { opacity: 0, y: -20 },
-  transition: { duration: 0.3, ease: 'easeOut' },
+  animate: { opacity: 1, y: 0, transition: { duration: 0.3, ease: 'easeOut' } },
+  exit: { opacity: 0, y: -20, transition: { duration: 0.3, ease: 'easeOut' } },
 };
 
 /** Появление с движением слева */
 export const slideIn: Variants = {
   initial: { opacity: 0, x: -20 },
-  animate: { opacity: 1, x: 0 },
-  exit: { opacity: 0, x: -20 },
-  transition: { duration: 0.2, ease: 'easeOut' },
+  animate: { opacity: 1, x: 0, transition: { duration: 0.2, ease: 'easeOut' } },
+  exit: { opacity: 0, x: -20, transition: { duration: 0.2, ease: 'easeOut' } },
 };
 
 /** Появление с движением справа */
 export const slideInRight: Variants = {
   initial: { opacity: 0, x: 20 },
-  animate: { opacity: 1, x: 0 },
-  exit: { opacity: 0, x: 20 },
-  transition: { duration: 0.2, ease: 'easeOut' },
+  animate: { opacity: 1, x: 0, transition: { duration: 0.2, ease: 'easeOut' } },
+  exit: { opacity: 0, x: 20, transition: { duration: 0.2, ease: 'easeOut' } },
 };
 
 /** Масштабирование */
 export const scaleIn: Variants = {
   initial: { opacity: 0, scale: 0.9 },
-  animate: { opacity: 1, scale: 1 },
-  exit: { opacity: 0, scale: 0.9 },
-  transition: { duration: 0.2, ease: 'easeOut' },
+  animate: { opacity: 1, scale: 1, transition: { duration: 0.2, ease: 'easeOut' } },
+  exit: { opacity: 0, scale: 0.9, transition: { duration: 0.2, ease: 'easeOut' } },
 };
 
 /** Появление с пружинным эффектом */

@@ -1,5 +1,10 @@
 networks:
-  team-messenger-network:
+  # Frontend network (публичная)
+  frontend-network:
+    driver: bridge
+    
+  # Backend network (приватная)
+  backend-network:
     driver: bridge
 
 volumes:
@@ -24,7 +29,7 @@ services:
     ports:
       - "${POSTGRES_PORT:-5432}:5432"
     networks:
-      - team-messenger-network
+      - backend-network
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-team_messenger}"]
       interval: 30s
@@ -51,7 +56,7 @@ services:
     ports:
       - "${REDIS_PORT:-6379}:6379"
     networks:
-      - team-messenger-network
+      - backend-network
     healthcheck:
       test: >
         sh -c "
@@ -76,7 +81,7 @@ services:
     volumes:
       - zookeeper_data:/var/lib/zookeeper/data
     networks:
-      - team-messenger-network
+      - backend-network
 
   # Kafka
   kafka:
@@ -98,7 +103,7 @@ services:
     ports:
       - "${KAFKA_PORT:-9092}:9092"
     networks:
-      - team-messenger-network
+      - backend-network
     healthcheck:
       test: ["CMD", "kafka-broker-api-versions", "--bootstrap-server", "localhost:9092"]
       interval: 30s
@@ -119,7 +124,7 @@ services:
       - "${MINIO_API_PORT:-9000}:9000"
       - "${MINIO_CONSOLE_PORT:-9001}:9001"
     networks:
-      - team-messenger-network
+      - backend-network
     command: server /data --console-address ":9001"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
@@ -139,7 +144,7 @@ services:
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin123}
       MINIO_BUCKET: ${MINIO_BUCKET:-teamfiles}
     networks:
-      - team-messenger-network
+      - backend-network
     entrypoint: >
       /bin/sh -c "
       echo 'Waiting for MinIO to be ready...';
@@ -155,7 +160,48 @@ services:
       "
     restart: "no"
 
-  # Nginx Gateway (API + MinIO proxy with rate limiting and WAF)
+  # Frontend (статичные файлы)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: http://localhost:8090
+    container_name: team-messenger-frontend
+    restart: unless-stopped
+    networks:
+      - frontend-network
+    expose:
+      - "80"
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider -q http://127.0.0.1/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # Frontend Nginx (для раздачи статики фронтенда)
+  frontend-nginx:
+    image: nginx:alpine
+    container_name: team-messenger-frontend-nginx
+    restart: unless-stopped
+    depends_on:
+      frontend:
+        condition: service_healthy
+    ports:
+      - "${FRONTEND_NGINX_PORT:-8091}:80"
+    networks:
+      - frontend-network
+    volumes:
+      - ./frontend/nginx-gateway.conf:/etc/nginx/conf.d/default.conf:ro
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider -q http://127.0.0.1/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # Backend Nginx Gateway (API + MinIO proxy with rate limiting and WAF)
   nginx:
     image: nginx:alpine
     container_name: team-messenger-nginx
@@ -168,16 +214,17 @@ services:
     ports:
       - "${NGINX_PORT:-8090}:80"
     networks:
-      - team-messenger-network
+      - backend-network
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./nginx/conf.d:/etc/nginx/conf.d:ro
       - ./nginx/logs:/var/log/nginx
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/health"]
+      test: ["CMD-SHELL", "wget --spider -q http://127.0.0.1/health || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
+      start_period: 10s
 
   # User Service
   user-service:
@@ -207,7 +254,7 @@ services:
     ports:
       - "${USER_SERVICE_PORT:-8082}:${USER_SERVICE_PORT:-8082}"
     networks:
-      - team-messenger-network
+      - backend-network
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:${USER_SERVICE_PORT:-8082}/health"]
       interval: 30s
@@ -244,7 +291,7 @@ services:
     ports:
       - "${FILE_SERVICE_PORT:-8080}:${FILE_SERVICE_PORT:-8080}"
     networks:
-      - team-messenger-network
+      - backend-network
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:${FILE_SERVICE_PORT:-8080}/health"]
       interval: 30s
@@ -276,7 +323,7 @@ services:
     ports:
       - "${TASK_SERVICE_PORT:-8081}:${TASK_SERVICE_PORT:-8081}"
     networks:
-      - team-messenger-network
+      - backend-network
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:${TASK_SERVICE_PORT:-8081}/health"]
       interval: 30s
@@ -307,7 +354,7 @@ services:
     ports:
       - "${CHAT_SERVICE_PORT:-8083}:${CHAT_SERVICE_PORT:-8083}"
     networks:
-      - team-messenger-network
+      - backend-network
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:${CHAT_SERVICE_PORT:-8083}/health"]
       interval: 30s
@@ -342,7 +389,7 @@ services:
     ports:
       - "${NOTIFICATION_SERVICE_PORT:-8085}:${NOTIFICATION_SERVICE_PORT:-8085}"
     networks:
-      - team-messenger-network
+      - backend-network
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:${NOTIFICATION_SERVICE_PORT:-8085}/health"]
       interval: 30s
@@ -388,7 +435,7 @@ services:
     expose:
       - "${API_SERVICE_PORT:-8084}"
     networks:
-      - team-messenger-network
+      - backend-network
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:${API_SERVICE_PORT:-8084}/api/v1/health"]
       interval: 30s
