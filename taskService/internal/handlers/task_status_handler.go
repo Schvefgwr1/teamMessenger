@@ -8,10 +8,10 @@ import (
 )
 
 type TaskStatusHandler struct {
-	Controller *controllers.TaskStatusController
+	Controller controllers.TaskStatusControllerInterface
 }
 
-func NewTaskStatusHandler(controller *controllers.TaskStatusController) *TaskStatusHandler {
+func NewTaskStatusHandler(controller controllers.TaskStatusControllerInterface) *TaskStatusHandler {
 	return &TaskStatusHandler{Controller: controller}
 }
 
