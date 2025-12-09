@@ -6,10 +6,10 @@ import (
 )
 
 type PermissionController struct {
-	permRepo *repositories.PermissionRepository
+	permRepo repositories.PermissionRepositoryInterface
 }
 
-func NewPermissionController(permRepo *repositories.PermissionRepository) *PermissionController {
+func NewPermissionController(permRepo repositories.PermissionRepositoryInterface) *PermissionController {
 	return &PermissionController{permRepo: permRepo}
 }
 

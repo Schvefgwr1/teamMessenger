@@ -11,10 +11,10 @@ import (
 )
 
 type AuthHandler struct {
-	authController *controllers.AuthController
+	authController controllers.AuthControllerInterface
 }
 
-func NewAuthHandler(authController *controllers.AuthController) *AuthHandler {
+func NewAuthHandler(authController controllers.AuthControllerInterface) *AuthHandler {
 	return &AuthHandler{authController: authController}
 }
 

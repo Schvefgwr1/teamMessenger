@@ -9,13 +9,13 @@ import (
 )
 
 type RoleController struct {
-	roleRepo       *repositories.RoleRepository
-	permissionRepo *repositories.PermissionRepository
+	roleRepo       repositories.RoleRepositoryInterface
+	permissionRepo repositories.PermissionRepositoryInterface
 }
 
 func NewRoleController(
-	roleRepo *repositories.RoleRepository,
-	permissionRepo *repositories.PermissionRepository,
+	roleRepo repositories.RoleRepositoryInterface,
+	permissionRepo repositories.PermissionRepositoryInterface,
 ) *RoleController {
 	return &RoleController{roleRepo: roleRepo, permissionRepo: permissionRepo}
 }
