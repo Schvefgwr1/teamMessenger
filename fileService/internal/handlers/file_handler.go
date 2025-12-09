@@ -9,10 +9,10 @@ import (
 )
 
 type FileHandler struct {
-	controller *controllers.FileController
+	controller controllers.FileControllerInterface
 }
 
-func NewFileHandler(controller *controllers.FileController) *FileHandler {
+func NewFileHandler(controller controllers.FileControllerInterface) *FileHandler {
 	return &FileHandler{controller: controller}
 }
 

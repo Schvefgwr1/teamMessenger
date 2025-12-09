@@ -19,13 +19,13 @@ import (
 )
 
 type FileController struct {
-	repo        *repositories.FileRepository
-	repoType    *repositories.FileTypeRepository
-	minioClient *minio.Client
+	repo        repositories.FileRepositoryInterface
+	repoType    repositories.FileTypeRepositoryInterface
+	minioClient MinIOClientInterface
 	minioConfig *config.MinIO
 }
 
-func NewFileController(repo *repositories.FileRepository, repoType *repositories.FileTypeRepository, minioClient *minio.Client, minioConfig *config.MinIO) *FileController {
+func NewFileController(repo repositories.FileRepositoryInterface, repoType repositories.FileTypeRepositoryInterface, minioClient MinIOClientInterface, minioConfig *config.MinIO) *FileController {
 	return &FileController{
 		repo:        repo,
 		repoType:    repoType,
