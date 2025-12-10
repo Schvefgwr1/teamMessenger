@@ -15,10 +15,10 @@ import (
 )
 
 type UserHandler struct {
-	userController *controllers.UserController
+	userController controllers.UserControllerInterface
 }
 
-func NewUserHandler(userController *controllers.UserController) *UserHandler {
+func NewUserHandler(userController controllers.UserControllerInterface) *UserHandler {
 	return &UserHandler{userController: userController}
 }
 

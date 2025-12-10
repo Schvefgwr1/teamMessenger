@@ -11,10 +11,10 @@ import (
 )
 
 type TaskHandler struct {
-	TaskController *controllers.TaskController
+	TaskController controllers.TaskControllerInterface
 }
 
-func NewTaskHandler(controller *controllers.TaskController) *TaskHandler {
+func NewTaskHandler(controller controllers.TaskControllerInterface) *TaskHandler {
 	return &TaskHandler{TaskController: controller}
 }
 

@@ -3,22 +3,44 @@ package controllers
 import (
 	au "common/contracts/api-user"
 	fc "common/contracts/file-contracts"
-	httpClients "common/http_clients"
 	"github.com/google/uuid"
 	"log"
 	"userService/internal/custom_errors"
 	"userService/internal/handlers/dto"
+	"userService/internal/http_clients"
 	"userService/internal/models"
 	"userService/internal/repositories"
 )
 
 type UserController struct {
-	userRepo *repositories.UserRepository
-	roleRepo *repositories.RoleRepository
+	userRepo   repositories.UserRepositoryInterface
+	roleRepo   repositories.RoleRepositoryInterface
+	fileClient http_clients.FileClientInterface
+	chatClient http_clients.ChatClientInterface
 }
 
-func NewUserController(userRepo *repositories.UserRepository, roleRepo *repositories.RoleRepository) *UserController {
-	return &UserController{userRepo: userRepo, roleRepo: roleRepo}
+func NewUserController(userRepo repositories.UserRepositoryInterface, roleRepo repositories.RoleRepositoryInterface) *UserController {
+	return &UserController{
+		userRepo:   userRepo,
+		roleRepo:   roleRepo,
+		fileClient: http_clients.NewFileClientAdapter(),
+		chatClient: http_clients.NewChatClientAdapter(),
+	}
+}
+
+// NewUserControllerWithClients создает контроллер с указанными HTTP клиентами (для тестирования)
+func NewUserControllerWithClients(
+	userRepo repositories.UserRepositoryInterface,
+	roleRepo repositories.RoleRepositoryInterface,
+	fileClient http_clients.FileClientInterface,
+	chatClient http_clients.ChatClientInterface,
+) *UserController {
+	return &UserController{
+		userRepo:   userRepo,
+		roleRepo:   roleRepo,
+		fileClient: fileClient,
+		chatClient: chatClient,
+	}
 }
 
 func (c *UserController) GetUserProfile(id uuid.UUID) (*models.User, *fc.File, error) {
@@ -28,7 +50,7 @@ func (c *UserController) GetUserProfile(id uuid.UUID) (*models.User, *fc.File, e
 	}
 
 	if user.AvatarFileID != nil {
-		file, err := httpClients.GetFileByID(*user.AvatarFileID)
+		file, err := c.fileClient.GetFileByID(*user.AvatarFileID)
 		if err != nil {
 			return user, nil, err
 		} else {
@@ -63,7 +85,7 @@ func (c *UserController) UpdateUserProfile(req *au.UpdateUserRequest, userId *uu
 		}
 	}
 	if req.AvatarFileID != nil {
-		file, errHTTP := httpClients.GetFileByID(*req.AvatarFileID)
+		file, errHTTP := c.fileClient.GetFileByID(*req.AvatarFileID)
 		if errHTTP != nil {
 			return custom_errors.NewGetFileHTTPError(*req.AvatarFileID, errHTTP.Error())
 		}
@@ -104,7 +126,7 @@ func (c *UserController) GetUserBrief(userID uuid.UUID, chatID string, requester
 	// Загружаем аватар если есть
 	if user.AvatarFileID != nil {
 		log.Printf("[GetUserBrief] Loading avatar for user %s, avatarFileID: %d", userID.String(), *user.AvatarFileID)
-		file, err := httpClients.GetFileByID(*user.AvatarFileID)
+		file, err := c.fileClient.GetFileByID(*user.AvatarFileID)
 		if err != nil {
 			log.Printf("[GetUserBrief] Error loading avatar: %v", err)
 		} else if file != nil {
@@ -118,7 +140,7 @@ func (c *UserController) GetUserBrief(userID uuid.UUID, chatID string, requester
 	// Получаем роль в чате если передан chatID
 	if chatID != "" && requesterID != "" {
 		log.Printf("[GetUserBrief] Getting chat role for user %s in chat %s, requester: %s", userID.String(), chatID, requesterID)
-		roleResp, err := httpClients.GetUserRoleInChat(chatID, userID.String(), requesterID)
+		roleResp, err := c.chatClient.GetUserRoleInChat(chatID, userID.String(), requesterID)
 		if err != nil {
 			log.Printf("[GetUserBrief] Error getting chat role: %v", err)
 		} else if roleResp != nil {
@@ -153,7 +175,7 @@ func (c *UserController) SearchUsers(query string, limit int) (*dto.UserSearchRe
 
 		// Загружаем аватар если есть
 		if user.AvatarFileID != nil {
-			file, err := httpClients.GetFileByID(*user.AvatarFileID)
+			file, err := c.fileClient.GetFileByID(*user.AvatarFileID)
 			if err == nil && file != nil {
 				result.AvatarFile = file
 			}

@@ -13,10 +13,10 @@ import (
 )
 
 type MessageHandler struct {
-	MessageController *controllers.MessageController
+	MessageController controllers.MessageControllerInterface
 }
 
-func NewMessageHandler(messageController *controllers.MessageController) *MessageHandler {
+func NewMessageHandler(messageController controllers.MessageControllerInterface) *MessageHandler {
 	return &MessageHandler{messageController}
 }
 

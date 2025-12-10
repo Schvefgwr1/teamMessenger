@@ -12,7 +12,7 @@ import (
 )
 
 type KeyManagementService struct {
-	keyProducer *kafka.KeyUpdateProducer
+	keyProducer KeyUpdateProducerInterface
 	keyVersion  int
 }
 
@@ -26,6 +26,14 @@ func NewKeyManagementService(kafkaConfig *kafka.ProducerConfig) (*KeyManagementS
 		keyProducer: producer,
 		keyVersion:  1, // Начинаем с версии 1
 	}, nil
+}
+
+// NewKeyManagementServiceWithProducer создает сервис с указанным producer (для тестирования)
+func NewKeyManagementServiceWithProducer(producer KeyUpdateProducerInterface, initialVersion int) *KeyManagementService {
+	return &KeyManagementService{
+		keyProducer: producer,
+		keyVersion:  initialVersion,
+	}
 }
 
 func (kms *KeyManagementService) RegenerateKeys() error {

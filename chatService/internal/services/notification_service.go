@@ -11,7 +11,7 @@ import (
 )
 
 type NotificationService struct {
-	producer *kafka.NotificationProducer
+	producer NotificationProducerInterface
 }
 
 func NewNotificationService(kafkaConfig *kafka.ProducerConfig) (*NotificationService, error) {
@@ -23,6 +23,11 @@ func NewNotificationService(kafkaConfig *kafka.ProducerConfig) (*NotificationSer
 	return &NotificationService{
 		producer: producer,
 	}, nil
+}
+
+// NewNotificationServiceWithProducer создаёт сервис с заранее переданным producer (для тестов)
+func NewNotificationServiceWithProducer(producer NotificationProducerInterface) *NotificationService {
+	return &NotificationService{producer: producer}
 }
 
 func (ns *NotificationService) SendChatCreatedNotification(

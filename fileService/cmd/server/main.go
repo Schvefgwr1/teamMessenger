@@ -75,7 +75,8 @@ func main() {
 	fileTypeRepo := repositories.NewFileTypeRepository(dbClient)
 
 	// Init controllers
-	fileController := controllers.NewFileController(fileRepo, fileTypeRepo, minioClient, &cfg.MinIO)
+	minioAdapter := controllers.NewMinIOAdapter(minioClient)
+	fileController := controllers.NewFileController(fileRepo, fileTypeRepo, minioAdapter, &cfg.MinIO)
 	fileTypeController := controllers.NewFileTypeController(fileTypeRepo)
 
 	// Init handlers

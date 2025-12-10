@@ -6,10 +6,10 @@ import (
 )
 
 type FileTypeController struct {
-	repo *repositories.FileTypeRepository
+	repo repositories.FileTypeRepositoryInterface
 }
 
-func NewFileTypeController(repo *repositories.FileTypeRepository) *FileTypeController {
+func NewFileTypeController(repo repositories.FileTypeRepositoryInterface) *FileTypeController {
 	return &FileTypeController{repo: repo}
 }
 

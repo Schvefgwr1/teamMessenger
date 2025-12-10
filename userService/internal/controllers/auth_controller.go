@@ -2,31 +2,53 @@ package controllers
 
 import (
 	au "common/contracts/api-user"
-	httpClients "common/http_clients"
 	"github.com/google/uuid"
 	"log"
 	"userService/internal/custom_errors"
+	"userService/internal/http_clients"
 	"userService/internal/models"
 	"userService/internal/repositories"
-	"userService/internal/services"
 	"userService/internal/utils"
 )
 
 type AuthController struct {
-	userRepo            *repositories.UserRepository
-	roleRepo            *repositories.RoleRepository
-	notificationService *services.NotificationService
+	userRepo            repositories.UserRepositoryInterface
+	roleRepo            repositories.RoleRepositoryInterface
+	notificationService NotificationServiceInterface
+	fileClient          http_clients.FileClientInterface
+}
+
+// NotificationServiceInterface - интерфейс для NotificationService
+type NotificationServiceInterface interface {
+	SendLoginNotification(userID uuid.UUID, username string, email string, ipAddress string, userAgent string) error
+	Close() error
 }
 
 func NewAuthController(
-	userRepo *repositories.UserRepository,
-	roleRepo *repositories.RoleRepository,
-	notificationService *services.NotificationService,
+	userRepo repositories.UserRepositoryInterface,
+	roleRepo repositories.RoleRepositoryInterface,
+	notificationService NotificationServiceInterface,
 ) *AuthController {
 	return &AuthController{
 		userRepo:            userRepo,
 		roleRepo:            roleRepo,
 		notificationService: notificationService,
+		fileClient:          http_clients.NewFileClientAdapter(),
+	}
+}
+
+// NewAuthControllerWithClients создает контроллер с указанными клиентами (для тестирования)
+func NewAuthControllerWithClients(
+	userRepo repositories.UserRepositoryInterface,
+	roleRepo repositories.RoleRepositoryInterface,
+	notificationService NotificationServiceInterface,
+	fileClient http_clients.FileClientInterface,
+) *AuthController {
+	return &AuthController{
+		userRepo:            userRepo,
+		roleRepo:            roleRepo,
+		notificationService: notificationService,
+		fileClient:          fileClient,
 	}
 }
 
@@ -67,7 +89,7 @@ func (c *AuthController) Register(req *au.RegisterUserRequest) (*models.User, er
 	}
 
 	if req.AvatarID != nil {
-		file, errHTTP := httpClients.GetFileByID(*req.AvatarID)
+		file, errHTTP := c.fileClient.GetFileByID(*req.AvatarID)
 		if errHTTP != nil {
 			return nil, custom_errors.NewGetFileHTTPError(*req.AvatarID, errHTTP.Error())
 		}

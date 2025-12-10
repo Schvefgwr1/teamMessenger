@@ -2,11 +2,11 @@ package controllers
 
 import (
 	fc "common/contracts/file-contracts"
-	"common/http_clients"
 	"log"
 	"strconv"
 	customErrors "taskService/internal/custom_errors"
 	"taskService/internal/handlers/dto"
+	"taskService/internal/http_clients"
 	"taskService/internal/models"
 	"taskService/internal/repositories"
 	"taskService/internal/services"
@@ -18,20 +18,47 @@ type TaskController struct {
 	TaskRepo            repositories.TaskRepository
 	TaskStatusRepo      repositories.TaskStatusRepository
 	TaskFileRepo        repositories.TaskFileRepository
-	NotificationService *services.NotificationService
+	NotificationService services.NotificationServiceInterface
+	UserClient          http_clients.UserClientInterface
+	ChatClient          http_clients.ChatClientInterface
+	FileClient          http_clients.FileClientInterface
 }
 
 func NewTaskController(
 	taskRepo repositories.TaskRepository,
 	taskStatusRepo repositories.TaskStatusRepository,
 	taskFileRepo repositories.TaskFileRepository,
-	notificationService *services.NotificationService,
+	notificationService services.NotificationServiceInterface,
 ) *TaskController {
 	return &TaskController{
 		TaskRepo:            taskRepo,
 		TaskStatusRepo:      taskStatusRepo,
 		TaskFileRepo:        taskFileRepo,
 		NotificationService: notificationService,
+		UserClient:          http_clients.NewUserClientAdapter(),
+		ChatClient:          http_clients.NewChatClientAdapter(),
+		FileClient:          http_clients.NewFileClientAdapter(),
+	}
+}
+
+// NewTaskControllerWithClients создает контроллер с указанными HTTP клиентами (для тестирования)
+func NewTaskControllerWithClients(
+	taskRepo repositories.TaskRepository,
+	taskStatusRepo repositories.TaskStatusRepository,
+	taskFileRepo repositories.TaskFileRepository,
+	notificationService services.NotificationServiceInterface,
+	userClient http_clients.UserClientInterface,
+	chatClient http_clients.ChatClientInterface,
+	fileClient http_clients.FileClientInterface,
+) *TaskController {
+	return &TaskController{
+		TaskRepo:            taskRepo,
+		TaskStatusRepo:      taskStatusRepo,
+		TaskFileRepo:        taskFileRepo,
+		NotificationService: notificationService,
+		UserClient:          userClient,
+		ChatClient:          chatClient,
+		FileClient:          fileClient,
 	}
 }
 
@@ -42,14 +69,14 @@ func (c *TaskController) Create(taskDTO *dto.CreateTaskDTO) (*models.Task, error
 	}
 
 	// Получаем информацию о создателе
-	creator, errUser := http_clients.GetUserByID(&taskDTO.CreatorID)
+	creator, errUser := c.UserClient.GetUserByID(&taskDTO.CreatorID)
 	if errUser != nil {
 		return nil, customErrors.NewGetUserHTTPError(taskDTO.CreatorID.String(), errUser.Error())
 	}
 
 	var executorEmail string
 	if taskDTO.ExecutorID != uuid.Nil {
-		executor, errTask := http_clients.GetUserByID(&taskDTO.ExecutorID)
+		executor, errTask := c.UserClient.GetUserByID(&taskDTO.ExecutorID)
 		if errTask != nil {
 			return nil, customErrors.NewGetUserHTTPError(taskDTO.ExecutorID.String(), errTask.Error())
 		}
@@ -60,14 +87,14 @@ func (c *TaskController) Create(taskDTO *dto.CreateTaskDTO) (*models.Task, error
 	}
 
 	if taskDTO.ChatID != uuid.Nil {
-		if _, errChat := http_clients.GetChatByID(taskDTO.ChatID.String()); errChat != nil {
+		if _, errChat := c.ChatClient.GetChatByID(taskDTO.ChatID.String()); errChat != nil {
 			return nil, customErrors.NewGetChatHTTPError(taskDTO.ChatID.String(), errChat.Error())
 		}
 	}
 
 	var taskFiles []models.TaskFile
 	for _, fileID := range taskDTO.FileIDs {
-		if _, errFile := http_clients.GetFileByID(fileID); errFile != nil {
+		if _, errFile := c.FileClient.GetFileByID(fileID); errFile != nil {
 			return nil, customErrors.NewGetFileHTTPError(fileID, errFile.Error())
 		}
 	}
@@ -143,7 +170,7 @@ func (c *TaskController) GetByID(taskID int) (*dto.TaskResponse, error) {
 	}
 	var files []fc.File
 	for _, taskFile := range task.Files {
-		file, errFile := http_clients.GetFileByID(taskFile.FileID)
+		file, errFile := c.FileClient.GetFileByID(taskFile.FileID)
 		if errFile != nil {
 			return nil, customErrors.NewGetFileHTTPError(taskFile.FileID, errFile.Error())
 		}

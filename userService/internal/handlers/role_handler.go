@@ -11,10 +11,10 @@ import (
 )
 
 type RoleHandler struct {
-	roleController *controllers.RoleController
+	roleController controllers.RoleControllerInterface
 }
 
-func NewRoleHandler(roleController *controllers.RoleController) *RoleHandler {
+func NewRoleHandler(roleController controllers.RoleControllerInterface) *RoleHandler {
 	return &RoleHandler{roleController: roleController}
 }
 

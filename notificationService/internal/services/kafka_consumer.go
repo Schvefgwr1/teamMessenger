@@ -19,11 +19,11 @@ type KeyUpdateConsumerConfig struct {
 
 type KafkaConsumer struct {
 	consumer     sarama.ConsumerGroup
-	emailService *EmailService
+	EmailService EmailServiceInterface // публичный для тестирования
 	config       *KeyUpdateConsumerConfig
 }
 
-func NewKafkaConsumer(cfg *KeyUpdateConsumerConfig, emailService *EmailService) (*KafkaConsumer, error) {
+func NewKafkaConsumer(cfg *KeyUpdateConsumerConfig, emailService EmailServiceInterface) (*KafkaConsumer, error) {
 	config := sarama.NewConfig()
 	config.Consumer.Group.Rebalance.Strategy = sarama.BalanceStrategyRoundRobin
 	config.Consumer.Offsets.Initial = sarama.OffsetNewest
@@ -36,7 +36,7 @@ func NewKafkaConsumer(cfg *KeyUpdateConsumerConfig, emailService *EmailService) 
 
 	return &KafkaConsumer{
 		consumer:     consumer,
-		emailService: emailService,
+		EmailService: emailService,
 		config:       cfg,
 	}, nil
 }
@@ -93,7 +93,7 @@ func (kc *KafkaConsumer) ConsumeClaim(session sarama.ConsumerGroupSession, claim
 			log.Printf("Received message: topic=%s partition=%d offset=%d",
 				message.Topic, message.Partition, message.Offset)
 
-			if err := kc.processMessage(message); err != nil {
+			if err := kc.ProcessMessage(message); err != nil {
 				log.Printf("Error processing message: %v", err)
 				// Продолжаем обработку, не прерывая процесс
 			}
@@ -107,18 +107,19 @@ func (kc *KafkaConsumer) ConsumeClaim(session sarama.ConsumerGroupSession, claim
 	}
 }
 
-func (kc *KafkaConsumer) processMessage(message *sarama.ConsumerMessage) error {
+// ProcessMessage обрабатывает сообщение из Kafka (публичный для тестирования)
+func (kc *KafkaConsumer) ProcessMessage(message *sarama.ConsumerMessage) error {
 	var kafkaMsg models.KafkaMessage
 	if err := json.Unmarshal(message.Value, &kafkaMsg); err != nil {
 		return fmt.Errorf("failed to unmarshal kafka message: %w", err)
 	}
 
-	notification, err := kc.parseNotification(kafkaMsg)
+	notification, err := kc.ParseNotification(kafkaMsg)
 	if err != nil {
 		return fmt.Errorf("failed to parse notification: %w", err)
 	}
 
-	if err := kc.emailService.SendNotification(notification); err != nil {
+	if err := kc.EmailService.SendNotification(notification); err != nil {
 		return fmt.Errorf("failed to send email notification: %w", err)
 	}
 
@@ -126,7 +127,8 @@ func (kc *KafkaConsumer) processMessage(message *sarama.ConsumerMessage) error {
 	return nil
 }
 
-func (kc *KafkaConsumer) parseNotification(kafkaMsg models.KafkaMessage) (interface{}, error) {
+// ParseNotification парсит Kafka сообщение в уведомление (публичный для тестирования)
+func (kc *KafkaConsumer) ParseNotification(kafkaMsg models.KafkaMessage) (interface{}, error) {
 	// Преобразуем payload обратно в JSON для парсинга в конкретную структуру
 	payloadBytes, err := json.Marshal(kafkaMsg.Payload)
 	if err != nil {

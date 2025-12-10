@@ -12,10 +12,10 @@ import (
 )
 
 type ChatHandler struct {
-	chatController *controllers.ChatController
+	chatController controllers.ChatControllerInterface
 }
 
-func NewChatHandler(chatController *controllers.ChatController) *ChatHandler {
+func NewChatHandler(chatController controllers.ChatControllerInterface) *ChatHandler {
 	return &ChatHandler{chatController: chatController}
 }
 

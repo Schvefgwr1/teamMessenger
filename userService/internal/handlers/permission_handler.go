@@ -7,10 +7,10 @@ import (
 )
 
 type PermissionHandler struct {
-	permController *controllers.PermissionController
+	permController controllers.PermissionControllerInterface
 }
 
-func NewPermissionHandler(permController *controllers.PermissionController) *PermissionHandler {
+func NewPermissionHandler(permController controllers.PermissionControllerInterface) *PermissionHandler {
 	return &PermissionHandler{permController: permController}
 }
 
