@@ -15,6 +15,7 @@ type EmailService struct {
 	config    *config.EmailConfig
 	templates map[models.NotificationType]*template.Template
 	dialer    *gomail.Dialer
+	sender    EmailSender // для тестирования
 }
 
 func NewEmailService(cfg *config.EmailConfig) (*EmailService, error) {
@@ -35,6 +36,7 @@ func NewEmailService(cfg *config.EmailConfig) (*EmailService, error) {
 		config:    cfg,
 		templates: make(map[models.NotificationType]*template.Template),
 		dialer:    dialer,
+		sender:    dialer, // gomail.Dialer реализует EmailSender через метод DialAndSend
 	}
 
 	// Загружаем шаблоны
@@ -130,9 +132,34 @@ func (s *EmailService) sendEmail(to, subject, htmlBody string) error {
 	m.SetHeader("Subject", subject)
 	m.SetBody("text/html", htmlBody)
 
-	if err := s.dialer.DialAndSend(m); err != nil {
+	sender := s.sender
+	if sender == nil {
+		sender = s.dialer
+	}
+
+	if err := sender.DialAndSend(m); err != nil {
 		return fmt.Errorf("failed to send email to %s: %w", to, err)
 	}
 
 	return nil
+}
+
+// NewEmailServiceWithSender создает EmailService с переданным EmailSender (для тестирования)
+func NewEmailServiceWithSender(cfg *config.EmailConfig, sender EmailSender) (*EmailService, error) {
+	if cfg.SMTPHost == "" {
+		return nil, fmt.Errorf("SMTP host is required")
+	}
+
+	service := &EmailService{
+		config:    cfg,
+		templates: make(map[models.NotificationType]*template.Template),
+		sender:    sender,
+	}
+
+	// Загружаем шаблоны
+	if err := service.loadTemplates(); err != nil {
+		return nil, fmt.Errorf("failed to load email templates: %w", err)
+	}
+
+	return service, nil
 }
