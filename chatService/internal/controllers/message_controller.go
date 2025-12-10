@@ -3,11 +3,11 @@ package controllers
 import (
 	"chatService/internal/custom_errors"
 	"chatService/internal/handlers/dto"
+	"chatService/internal/http_clients"
 	"chatService/internal/models"
 	"chatService/internal/repositories"
 	ac "common/contracts/api-chat"
 	fc "common/contracts/file-contracts"
-	httpClients "common/http_clients"
 	"github.com/google/uuid"
 	"time"
 )
@@ -16,10 +16,35 @@ type MessageController struct {
 	MessageRepo  repositories.MessageRepository
 	ChatRepo     repositories.ChatRepository
 	ChatUserRepo repositories.ChatUserRepository
+	FileClient   http_clients.FileClientInterface
+	UserClient   http_clients.UserClientInterface
 }
 
 func NewMessageController(messageRepo repositories.MessageRepository, chatRepo repositories.ChatRepository, chatUserRepo repositories.ChatUserRepository) *MessageController {
-	return &MessageController{messageRepo, chatRepo, chatUserRepo}
+	return &MessageController{
+		MessageRepo:  messageRepo,
+		ChatRepo:     chatRepo,
+		ChatUserRepo: chatUserRepo,
+		FileClient:   http_clients.NewFileClientAdapter(),
+		UserClient:   http_clients.NewUserClientAdapter(),
+	}
+}
+
+// NewMessageControllerWithClients создает контроллер с указанными HTTP клиентами (для тестирования)
+func NewMessageControllerWithClients(
+	messageRepo repositories.MessageRepository,
+	chatRepo repositories.ChatRepository,
+	chatUserRepo repositories.ChatUserRepository,
+	fileClient http_clients.FileClientInterface,
+	userClient http_clients.UserClientInterface,
+) *MessageController {
+	return &MessageController{
+		MessageRepo:  messageRepo,
+		ChatRepo:     chatRepo,
+		ChatUserRepo: chatUserRepo,
+		FileClient:   fileClient,
+		UserClient:   userClient,
+	}
 }
 
 func (c *MessageController) SendMessage(senderID, chatID uuid.UUID, dto *dto.CreateMessageDTO) (*models.Message, error) {
@@ -28,7 +53,7 @@ func (c *MessageController) SendMessage(senderID, chatID uuid.UUID, dto *dto.Cre
 		return nil, custom_errors.ErrInvalidCredentials
 	}
 
-	userResp, err := httpClients.GetUserByID(&senderID)
+	userResp, err := c.UserClient.GetUserByID(&senderID)
 	if err != nil {
 		return nil, custom_errors.NewUserClientError(err.Error())
 	}
@@ -37,7 +62,7 @@ func (c *MessageController) SendMessage(senderID, chatID uuid.UUID, dto *dto.Cre
 	}
 
 	for _, fileID := range dto.FileIDs {
-		file, err := httpClients.GetFileByID(fileID)
+		file, err := c.FileClient.GetFileByID(fileID)
 		if err != nil {
 			return nil, custom_errors.NewGetFileHTTPError(fileID, err.Error())
 		}
@@ -89,7 +114,7 @@ func (c *MessageController) GetChatMessages(chatID uuid.UUID, offset, limit int)
 	for _, message := range messages {
 		var files []*fc.File
 		for _, file := range message.Files {
-			fileHTTP, err := httpClients.GetFileByID(file.FileID)
+			fileHTTP, err := c.FileClient.GetFileByID(file.FileID)
 			if err != nil {
 				return nil, custom_errors.NewGetFileHTTPError(file.FileID, err.Error())
 			}

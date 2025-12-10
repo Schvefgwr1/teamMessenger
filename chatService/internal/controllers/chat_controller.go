@@ -3,10 +3,10 @@ package controllers
 import (
 	"chatService/internal/custom_errors"
 	"chatService/internal/handlers/dto"
+	"chatService/internal/http_clients"
 	"chatService/internal/models"
 	"chatService/internal/repositories"
 	"chatService/internal/services"
-	httpClients "common/http_clients"
 	"github.com/google/uuid"
 	"log"
 )
@@ -15,20 +15,43 @@ type ChatController struct {
 	ChatRepo            repositories.ChatRepository
 	ChatUserRepo        repositories.ChatUserRepository
 	ChatRoleRepo        repositories.ChatRoleRepository
-	NotificationService *services.NotificationService
+	NotificationService services.NotificationServiceInterface
+	FileClient          http_clients.FileClientInterface
+	UserClient          http_clients.UserClientInterface
 }
 
 func NewChatController(
 	chatRepo repositories.ChatRepository,
 	chatUserRepo repositories.ChatUserRepository,
 	chatRoleRepo repositories.ChatRoleRepository,
-	notificationService *services.NotificationService,
+	notificationService services.NotificationServiceInterface,
 ) *ChatController {
 	return &ChatController{
 		ChatRepo:            chatRepo,
 		ChatUserRepo:        chatUserRepo,
 		ChatRoleRepo:        chatRoleRepo,
 		NotificationService: notificationService,
+		FileClient:          http_clients.NewFileClientAdapter(),
+		UserClient:          http_clients.NewUserClientAdapter(),
+	}
+}
+
+// NewChatControllerWithClients создает контроллер с указанными HTTP клиентами (для тестирования)
+func NewChatControllerWithClients(
+	chatRepo repositories.ChatRepository,
+	chatUserRepo repositories.ChatUserRepository,
+	chatRoleRepo repositories.ChatRoleRepository,
+	notificationService services.NotificationServiceInterface,
+	fileClient http_clients.FileClientInterface,
+	userClient http_clients.UserClientInterface,
+) *ChatController {
+	return &ChatController{
+		ChatRepo:            chatRepo,
+		ChatUserRepo:        chatUserRepo,
+		ChatRoleRepo:        chatRoleRepo,
+		NotificationService: notificationService,
+		FileClient:          fileClient,
+		UserClient:          userClient,
 	}
 }
 
@@ -52,7 +75,7 @@ func (c *ChatController) GetChatByID(chatID uuid.UUID) (*dto.ChatResponse, error
 
 	// Загружаем файл аватара если есть
 	if chat.AvatarFileID != nil {
-		file, err := httpClients.GetFileByID(*chat.AvatarFileID)
+		file, err := c.FileClient.GetFileByID(*chat.AvatarFileID)
 		if err == nil && file != nil {
 			chatResponse.AvatarFile = file
 		}
@@ -80,7 +103,7 @@ func (c *ChatController) GetUserChats(userID uuid.UUID) (*[]dto.ChatResponse, er
 
 		// Загружаем файл аватара если есть
 		if chat.AvatarFileID != nil {
-			file, err := httpClients.GetFileByID(*chat.AvatarFileID)
+			file, err := c.FileClient.GetFileByID(*chat.AvatarFileID)
 			if err == nil && file != nil {
 				chatResponse.AvatarFile = file
 			}
@@ -109,7 +132,7 @@ func (c *ChatController) CreateChat(dto *dto.CreateChatDTO) (*uuid.UUID, error) 
 	}
 
 	if dto.AvatarFileID != nil {
-		file, errHTTP := httpClients.GetFileByID(*dto.AvatarFileID)
+		file, errHTTP := c.FileClient.GetFileByID(*dto.AvatarFileID)
 		if errHTTP != nil {
 			return nil, custom_errors.NewGetFileHTTPError(*dto.AvatarFileID, errHTTP.Error())
 		}
@@ -128,7 +151,7 @@ func (c *ChatController) CreateChat(dto *dto.CreateChatDTO) (*uuid.UUID, error) 
 		newChat.IsGroup = true
 	}
 
-	userOwnerClientResponse, err := httpClients.GetUserByID(&dto.OwnerID)
+	userOwnerClientResponse, err := c.UserClient.GetUserByID(&dto.OwnerID)
 	if err != nil {
 		return nil, custom_errors.NewUserClientError(err.Error())
 	}
@@ -163,7 +186,7 @@ func (c *ChatController) CreateChat(dto *dto.CreateChatDTO) (*uuid.UUID, error) 
 
 	// Добавляем пользователей в чат и отправляем уведомления
 	for _, userID := range dto.UserIDs {
-		userClientResponse, err := httpClients.GetUserByID(&userID)
+		userClientResponse, err := c.UserClient.GetUserByID(&userID)
 		if err != nil {
 			return nil, custom_errors.NewUserClientError(err.Error())
 		}
@@ -217,7 +240,7 @@ func (c *ChatController) UpdateChat(chatID uuid.UUID, updateChatDTO *dto.UpdateC
 		chat.Description = updateChatDTO.Description
 	}
 	if updateChatDTO.AvatarFileID != nil {
-		file, errHTTP := httpClients.GetFileByID(*updateChatDTO.AvatarFileID)
+		file, errHTTP := c.FileClient.GetFileByID(*updateChatDTO.AvatarFileID)
 		if errHTTP != nil {
 			return nil, custom_errors.NewGetFileHTTPError(*updateChatDTO.AvatarFileID, errHTTP.Error())
 		}
@@ -238,7 +261,7 @@ func (c *ChatController) UpdateChat(chatID uuid.UUID, updateChatDTO *dto.UpdateC
 
 	var updateUsers []dto.UpdateUser
 	for _, userID := range updateChatDTO.AddUserIDs {
-		userResp, err := httpClients.GetUserByID(&userID)
+		userResp, err := c.UserClient.GetUserByID(&userID)
 		if err != nil {
 			return nil, custom_errors.NewUserClientError(err.Error())
 		}

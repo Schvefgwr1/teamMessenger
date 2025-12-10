@@ -6,3 +6,9 @@ docker compose -f docker-compose.yml -f docker-compose.debug.yml --env-file comp
 Полная пересборка (если что-то сломалось):
 docker compose -f docker-compose.yml -f docker-compose.debug.yml --env-file compose.env down
 docker compose -f docker-compose.yml -f docker-compose.debug.yml --env-file compose.env up --build
+
+
+go test "-coverpkg=chatService/internal/controllers,chatService/internal/handlers,chatService/internal/services" ./tests/controllers ./tests/handlers ./tests/services -coverprofile=coverage.out
+go tool cover -func coverage.out
+
+
