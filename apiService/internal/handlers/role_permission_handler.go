@@ -10,10 +10,10 @@ import (
 )
 
 type ChatRolePermissionHandler struct {
-	controller *controllers.ChatRolePermissionController
+	controller controllers.ChatRolePermissionControllerInterface
 }
 
-func NewRolePermissionHandler(controller *controllers.ChatRolePermissionController) *ChatRolePermissionHandler {
+func NewRolePermissionHandler(controller controllers.ChatRolePermissionControllerInterface) *ChatRolePermissionHandler {
 	return &ChatRolePermissionHandler{controller: controller}
 }
 
