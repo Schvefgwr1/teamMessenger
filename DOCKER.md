@@ -14,15 +14,25 @@
 - **Task Service** (8081) - Управление задачами
 - **Notification Service** (8085) - Email уведомления
 
+### Frontend
+- **Frontend** - React SPA приложение (статичные файлы)
+- **Frontend Nginx** (8091) - Прокси для раздачи frontend приложения
+
 ### Инфраструктура
 - **PostgreSQL** (5432) - Основная база данных
 - **Redis** (6379) - Кеш и сессии
 - **Kafka** (9092) - Очереди сообщений
 - **MinIO** (9000/9001) - S3-совместимое хранилище файлов
-- **Nginx** (8090) - Прокси для доступа к файлам
+- **Backend Nginx** (8090) - Прокси для API и MinIO (с rate limiting и WAF)
 - **Zookeeper** (2181) - Координация Kafka
 
-## 🏗️ Новая архитектура конфигурации
+### Сети Docker
+
+Система использует две изолированные сети:
+- **frontend-network** - для frontend и frontend-nginx (публичный доступ)
+- **backend-network** - для всех микросервисов и инфраструктуры (приватная)
+
+## 🏗️ Архитектура конфигурации
 
 ### Двухуровневая система переменных окружения
 
@@ -74,36 +84,24 @@ cd teamMessenger
 
 ### 2. Настройка переменных окружения
 
-#### Автоматическая настройка (рекомендуется):
+#### Создание compose.env:
+
 ```bash
-make setup-env
+# Скопируйте шаблон
+cp compose.env.example compose.env
+
+# Отредактируйте compose.env под ваши нужды
+nano compose.env
 ```
 
-Это создаст:
-- `compose.env` - для Docker инфраструктуры
-- `.env` файлы во всех сервисах - для локальной логики
+#### Основные настройки в compose.env:
 
-#### Раздельная настройка:
-```bash
-# Только Docker инфраструктура
-make setup-compose
-
-# Только .env файлы сервисов
-make setup-services
-
-# Для разработки
-make env-dev
-```
-
-### 3. Основные настройки
-
-#### В compose.env (инфраструктура):
 ```bash
 # Email для уведомлений
 SMTP_USERNAME=your-email@yandex.ru
 SMTP_PASSWORD=your-app-password
 
-# Пароли для безопасности (в продакшене)
+# Пароли для безопасности (в продакшене обязательно измените!)
 POSTGRES_PASSWORD=secure_password
 REDIS_PASSWORD=redis_password
 MINIO_ROOT_PASSWORD=minio_password
@@ -111,66 +109,171 @@ MINIO_ROOT_PASSWORD=minio_password
 # Порты (если заняты стандартные)
 USER_SERVICE_PORT=8082
 API_SERVICE_PORT=8084
+FRONTEND_NGINX_PORT=8091
+NGINX_PORT=8090
 ```
 
 #### В локальных .env файлах сервисов:
-Каждый сервис имеет свой .env файл для специфичных настроек. Эти файлы загружаются через `godotenv.Load()` в main.go каждого сервиса.
 
-### 4. Запуск всей системы
+Каждый сервис имеет свой `.env` файл для специфичных настроек. Эти файлы загружаются через `godotenv.Load()` в main.go каждого сервиса.
+
+Создайте `.env` файлы на основе `env.example` в каждом сервисе:
+```bash
+# Для каждого сервиса
+cp userService/env.example userService/.env
+cp apiService/env.example apiService/.env
+# и т.д.
+```
+
+### 3. Запуск всей системы
 
 С использованием Make:
 ```bash
 make up
 ```
 
-Или с помощью docker-compose:
+Или с помощью docker-compose напрямую:
 ```bash
-docker-compose up -d
-chmod +x scripts/init-minio.sh
-./scripts/init-minio.sh
+docker compose -f docker-compose.yml --env-file compose.env up -d
 ```
 
-**📢 Важно**: При первом запуске миграции могут занять 1-2 минуты. Следите за логами сервисов.
+**📢 Важно**: 
+- При первом запуске миграции могут занять 1-2 минуты. Следите за логами сервисов.
+- MinIO bucket создаётся автоматически через контейнер `minio-init`
+- Frontend собирается автоматически при первом запуске
 
-### 5. Проверка запуска
-
-```bash
-make status
-# или
-make show-config  # показать текущие настройки
-```
-
-## Управление конфигурацией
-
-### Команды для работы с файлами конфигурации
+### 4. Проверка запуска
 
 ```bash
-# Создать все файлы конфигурации
-make setup-env
+# Проверить статус контейнеров
+docker compose ps
 
-# Только Docker инфраструктура
-make setup-compose
+# Проверить логи
+docker compose logs -f
 
-# Только .env файлы сервисов
-make setup-services
-
-# Использовать настройки для разработки
-make env-dev
-
-# Показать рекомендации для продакшена  
-make env-prod
-
-# Показать текущие настройки
-make show-config
+# Проверить здоровье сервисов
+curl http://localhost:8090/api/v1/health
+curl http://localhost:8091/health
 ```
 
-### Структура конфигурации
+## Доступные эндпоинты
+
+После запуска системы доступны следующие сервисы (порты настраиваются в `compose.env`):
+
+| Сервис | URL | Описание |
+|--------|-----|----------|
+| **Frontend** | http://localhost:[FRONTEND_NGINX_PORT] | React SPA приложение (по умолчанию 8091) |
+| **API Gateway** | http://localhost:[NGINX_PORT]/api/v1 | Основная точка входа для API (по умолчанию 8090) |
+| **User Service** | http://localhost:[USER_SERVICE_PORT] | Swagger: /swagger/index.html (по умолчанию 8082) |
+| **File Service** | http://localhost:[FILE_SERVICE_PORT] | Swagger: /swagger/index.html (по умолчанию 8080) |
+| **Task Service** | http://localhost:[TASK_SERVICE_PORT] | Swagger: /swagger/index.html (по умолчанию 8081) |
+| **Chat Service** | http://localhost:[CHAT_SERVICE_PORT] | Swagger: /swagger/index.html (по умолчанию 8083) |
+| **Notification Service** | http://localhost:[NOTIFICATION_SERVICE_PORT] | Health: /health (по умолчанию 8085) |
+| **MinIO Console** | http://localhost:[MINIO_CONSOLE_PORT] | admin/[MINIO_ROOT_PASSWORD] (по умолчанию 9001) |
+| **PostgreSQL** | localhost:[POSTGRES_PORT] | [POSTGRES_USER]/[POSTGRES_PASSWORD] (по умолчанию 5432) |
+| **Redis** | localhost:[REDIS_PORT] | Пароль из REDIS_PASSWORD (по умолчанию 6379) |
+| **Kafka** | localhost:[KAFKA_PORT] | - (по умолчанию 9092) |
+
+**Важно**: 
+- API Service не экспонирует порт наружу - доступ только через Nginx на порту 8090
+- Frontend доступен через отдельный Nginx на порту 8091
+- Все API запросы должны идти через `/api/v1` префикс
+
+## Доступ к файлам
+
+Файлы доступны через Backend Nginx прокси по адресу:
+```
+http://localhost:[NGINX_PORT]/teamfiles/[filename]
+```
+
+Например, если файл загружен как `avatar.jpg`:
+```
+http://localhost:8090/teamfiles/avatar.jpg
+```
+
+## Управление контейнерами
+
+### С помощью Make
+
+```bash
+# Показать все команды
+make help
+
+# Запустить систему
+make up
+
+# Пересобрать и запустить
+make build-up
+
+# Остановить систему
+make down
+
+# Запуск в debug режиме
+make debug
+
+# Запуск с тестами
+make test          # Unit тесты + запуск
+make test-full     # Unit + Integration тесты + запуск
+```
+
+### С помощью Docker Compose напрямую
+
+```bash
+# Запустить систему
+docker compose -f docker-compose.yml --env-file compose.env up -d
+
+# Остановить систему
+docker compose -f docker-compose.yml --env-file compose.env down
+
+# Пересобрать и запустить
+docker compose -f docker-compose.yml --env-file compose.env build
+docker compose -f docker-compose.yml --env-file compose.env up -d
+
+# Показать логи
+docker compose logs -f
+
+# Показать логи конкретного сервиса
+docker compose logs -f api-service
+docker compose logs -f frontend
+docker compose logs -f nginx
+
+# Перезапустить сервис
+docker compose restart api-service
+
+# Пересобрать конкретный сервис
+docker compose build api-service
+docker compose up -d api-service
+```
+
+### Проверка статуса
+
+```bash
+# Статус всех контейнеров
+docker compose ps
+
+# Проверка здоровья
+docker compose ps --format "table {{.Name}}\t{{.Status}}\t{{.Ports}}"
+
+# Проверка логов конкретного сервиса
+docker compose logs api-service | tail -50
+docker compose logs frontend | tail -50
+```
+
+## Структура конфигурации
 
 ```
 teamMessenger/
 ├── compose.env              # 🐳 Docker инфраструктура
 ├── compose.env.example      # 📋 Шаблон для compose.env
-├── compose.development      # 🛠️ Настройки для разработки
+├── docker-compose.yml       # 🐳 Основной compose файл
+├── docker-compose.debug.yml  # 🐛 Debug режим
+├── frontend/
+│   ├── Dockerfile           # Frontend сборка
+│   ├── nginx.conf           # Nginx для frontend контейнера
+│   └── nginx-gateway.conf   # Nginx для frontend-nginx прокси
+├── nginx/
+│   ├── nginx.conf           # Backend Nginx конфигурация
+│   └── conf.d/              # WAF правила, blacklist, whitelist
 ├── userService/
 │   ├── .env                 # ⚙️ Локальные настройки userService
 │   └── env.example          # 📋 Шаблон для userService
@@ -206,9 +309,10 @@ environment:
 # Отредактируйте compose.env
 POSTGRES_PORT=5433
 API_SERVICE_PORT=8184
+FRONTEND_NGINX_PORT=8092
 
 # Перезапустите
-make restart
+docker compose -f docker-compose.yml --env-file compose.env restart
 ```
 
 #### Для логики сервиса:
@@ -217,137 +321,18 @@ make restart
 JWT_SECRET=new_secret_key
 
 # Пересоберите сервис
-docker-compose build user-service
-docker-compose restart user-service
+docker compose build user-service
+docker compose up -d user-service
 ```
 
-## Доступные эндпоинты
-
-После запуска системы доступны следующие сервисы (порты читаются из `compose.env`):
-
-| Сервис | URL | Описание |
-|--------|-----|----------|
-| API Gateway | http://localhost:[API_SERVICE_PORT] | Основная точка входа |
-| User Service | http://localhost:[USER_SERVICE_PORT] | Swagger: /swagger/index.html |
-| File Service | http://localhost:[FILE_SERVICE_PORT] | Swagger: /swagger/index.html |
-| Task Service | http://localhost:[TASK_SERVICE_PORT] | Swagger: /swagger/index.html |
-| Chat Service | http://localhost:[CHAT_SERVICE_PORT] | Swagger: /swagger/index.html |
-| Notification Service | http://localhost:[NOTIFICATION_SERVICE_PORT] | Health: /health |
-| MinIO Console | http://localhost:[MINIO_CONSOLE_PORT] | admin/[MINIO_ROOT_PASSWORD] |
-| PostgreSQL | localhost:[POSTGRES_PORT] | [POSTGRES_USER]/[POSTGRES_PASSWORD] |
-| Redis | localhost:[REDIS_PORT] | Пароль из REDIS_PASSWORD |
-| Kafka | localhost:[KAFKA_PORT] | - |
-
-Чтобы увидеть актуальные порты:
+#### Для Frontend:
 ```bash
-make show-config
-```
+# Отредактируйте frontend/.env.local (если есть)
+VITE_API_URL=http://localhost:8090
 
-## Доступ к файлам
-
-Файлы доступны через Nginx прокси по адресу:
-```
-http://localhost:[NGINX_PORT]/teamfiles/[filename]
-```
-
-Например, если файл загружен как `avatar.jpg`:
-```
-http://localhost:8090/teamfiles/avatar.jpg
-```
-
-## Управление контейнерами
-
-### С помощью Make
-
-```bash
-# Показать все команды
-make help
-
-# Собрать образы
-make build
-
-# Запустить систему
-make up
-
-# Остановить систему
-make down
-
-# Перезапустить
-make restart
-
-# Показать логи
-make logs
-
-# Показать логи в реальном времени
-make logs-follow
-
-# Показать статус
-make status
-
-# Показать текущие настройки
-make show-config
-
-# Пересобрать и перезапустить
-make rebuild
-
-# Полная очистка
-make clean
-```
-
-### Управление конфигурацией
-
-```bash
-# Настройка всех файлов конфигурации
-make setup-env
-
-# Только Docker инфраструктура
-make setup-compose
-
-# Только локальные .env файлы сервисов
-make setup-services
-
-# Настройки для разработки
-make env-dev
-
-# Информация для продакшена
-make env-prod
-```
-
-### Управление миграциями
-
-```bash
-# Проверить статус миграций
-make check-migrations
-
-# Принудительно запустить миграции для сервиса
-make migrate-user
-make migrate-file
-make migrate-chat
-make migrate-task
-```
-
-### Частичное управление
-
-```bash
-# Запустить только инфраструктуру
-make up-infra
-
-# Запустить только микросервисы
-make up-services
-
-# Остановить только микросервисы
-make down-services
-```
-
-### Логи отдельных сервисов
-
-```bash
-make logs-api          # API Gateway
-make logs-user         # User Service
-make logs-file         # File Service
-make logs-chat         # Chat Service
-make logs-task         # Task Service
-make logs-notification # Notification Service
+# Пересоберите frontend
+docker compose build frontend
+docker compose up -d frontend
 ```
 
 ## Конфигурация для продакшена
@@ -386,24 +371,34 @@ MAX_FILE_SIZE=50MB
 ALLOWED_TYPES=jpg,png,pdf,doc
 ```
 
+### Настройка Nginx для продакшена
+
+Backend Nginx уже настроен с:
+- Rate limiting для защиты от DDoS
+- WAF правилами (в `nginx/conf.d/waf_rules.conf`)
+- Blacklist/Whitelist IP (в `nginx/conf.d/blacklist.conf` и `whitelist.conf`)
+
+Настройте правила под ваши нужды в `nginx/conf.d/`.
+
 ## Отладка
 
 ### Проверка здоровья сервисов
 
 ```bash
-# Проверить все сервисы
-curl http://localhost:$(grep '^API_SERVICE_PORT=' compose.env | cut -d'=' -f2)/health
+# Проверить API Gateway через Nginx
+curl http://localhost:8090/api/v1/health
 
-# Проверить конкретный сервис
-curl http://localhost:$(grep '^USER_SERVICE_PORT=' compose.env | cut -d'=' -f2)/swagger/index.html
+# Проверить Frontend
+curl http://localhost:8091/health
+
+# Проверить конкретный сервис напрямую
+curl http://localhost:8082/health  # User Service
+curl http://localhost:8080/health   # File Service
 ```
 
 ### Проверка конфигурации
 
 ```bash
-# Показать все настройки
-make show-config
-
 # Проверить compose.env файл
 cat compose.env | grep -v '^#' | grep -v '^$'
 
@@ -411,24 +406,24 @@ cat compose.env | grep -v '^#' | grep -v '^$'
 ls -la */.*env
 
 # Проверить переменные в контейнере
-docker-compose exec user-service env | grep -E "DB_|APP_|KAFKA_"
+docker compose exec user-service env | grep -E "DB_|APP_|KAFKA_"
 ```
 
 ### Проверка загрузки .env файлов
 
 ```bash
 # Посмотреть логи загрузки .env
-docker-compose logs user-service | grep -i "env\|load"
+docker compose logs user-service | grep -i "env\|load"
 
 # Проверить переменные внутри контейнера
-docker-compose exec user-service sh -c 'echo "DB_HOST=$DB_HOST, APP_PORT=$APP_PORT"'
+docker compose exec user-service sh -c 'echo "DB_HOST=$DB_HOST, APP_PORT=$APP_PORT"'
 ```
 
 ### Проверка базы данных
 
 ```bash
 # Подключиться к PostgreSQL
-docker exec -it team-messenger-postgres psql -U $(grep '^POSTGRES_USER=' compose.env | cut -d'=' -f2) -d $(grep '^POSTGRES_DB=' compose.env | cut -d'=' -f2)
+docker exec -it team-messenger-postgres psql -U postgres -d team_messenger
 
 # Проверить таблицы
 \dt
@@ -440,39 +435,48 @@ docker exec -it team-messenger-postgres psql -U $(grep '^POSTGRES_USER=' compose
 SELECT * FROM schema_migrations ORDER BY service, version;
 ```
 
+### Проверка Frontend
+
+```bash
+# Проверить логи frontend
+docker compose logs frontend
+
+# Проверить логи frontend-nginx
+docker compose logs frontend-nginx
+
+# Проверить доступность
+curl http://localhost:8091/
+
+# Проверить переменные окружения frontend
+docker compose exec frontend env | grep VITE
+```
+
 ## Решение проблем
 
 ### Проблемы с конфигурацией
 
 ```bash
-# Проверить все файлы конфигурации
-make show-config
-
-# Пересоздать все файлы конфигурации
-rm compose.env */.*env
-make setup-env
-
-# Применить настройки разработки
-make env-dev
+# Проверить compose.env файл
+cat compose.env | grep -v '^#' | grep -v '^$'
 
 # Проверить переменные в контейнере
-docker-compose exec api-service env | grep -E "_PORT|_PASSWORD"
+docker compose exec api-service env | grep -E "_PORT|_PASSWORD"
+
+# Проверить что compose.env загружается
+docker compose config | grep -A 5 "environment:"
 ```
 
 ### Проблемы с .env файлами сервисов
 
 ```bash
 # Проверить наличие .env файлов
-make show-config
-
-# Создать недостающие .env файлы
-make setup-services
+ls -la */.*env
 
 # Посмотреть логи загрузки .env в сервисе
-docker-compose logs user-service | grep -i "env file"
+docker compose logs user-service | grep -i "env file"
 
 # Проверить содержимое .env в контейнере
-docker-compose exec user-service cat .env
+docker compose exec user-service cat .env
 ```
 
 ### Конфликты переменных
@@ -487,7 +491,7 @@ docker-compose exec user-service cat .env
 2. **Отладьте переменные**:
 ```bash
 # В контейнере
-docker-compose exec user-service env | sort
+docker compose exec user-service env | sort
 
 # Сравните с локальным .env
 cat userService/.env
@@ -504,13 +508,10 @@ environment:
 
 ```bash
 # Посмотреть логи миграций
-docker-compose logs [service-name] | grep -i migration
+docker compose logs user-service | grep -i migration
 
 # Проверить подключение к БД
 docker exec -it team-messenger-postgres pg_isready -U postgres
-
-# Принудительно запустить миграции
-make migrate-user  # или другой сервис
 
 # Проверить схемы в БД
 docker exec -it team-messenger-postgres psql -U postgres -d team_messenger -c "\dn"
@@ -524,10 +525,43 @@ docker exec -it team-messenger-postgres psql -U postgres -d team_messenger -c "\
 # Измените нужные порты
 USER_SERVICE_PORT=8182
 API_SERVICE_PORT=8184
+FRONTEND_NGINX_PORT=8092
+NGINX_PORT=8091
 POSTGRES_PORT=5433
 
 # Перезапустите
-make restart
+docker compose -f docker-compose.yml --env-file compose.env down
+docker compose -f docker-compose.yml --env-file compose.env up -d
+```
+
+### Проблемы с Frontend
+
+```bash
+# Проверить сборку frontend
+docker compose logs frontend | grep -i "build\|error"
+
+# Пересобрать frontend
+docker compose build frontend
+docker compose up -d frontend
+
+# Проверить nginx конфигурацию frontend
+docker compose exec frontend-nginx nginx -t
+
+# Проверить доступность frontend контейнера
+docker compose exec frontend-nginx wget -O- http://frontend:80/health
+```
+
+### Проблемы с Nginx
+
+```bash
+# Проверить конфигурацию backend nginx
+docker compose exec nginx nginx -t
+
+# Проверить логи nginx
+docker compose logs nginx | tail -100
+
+# Перезапустить nginx
+docker compose restart nginx
 ```
 
 ## Остановка и очистка
@@ -535,24 +569,27 @@ make restart
 ```bash
 # Остановить контейнеры
 make down
+# или
+docker compose -f docker-compose.yml --env-file compose.env down
 
-# Полная очистка (удаляет данные!)
-make clean
+# Остановить и удалить volumes (удаляет данные!)
+docker compose -f docker-compose.yml --env-file compose.env down -v
 
-# Или вручную
-docker-compose down -v --rmi all --remove-orphans
+# Полная очистка (удаляет данные и образы!)
+docker compose -f docker-compose.yml --env-file compose.env down -v --rmi all --remove-orphans
 docker system prune -f
 ```
 
-**⚠️ Внимание**: команда `make clean` удаляет все данные включая базу данных и загруженные файлы!
+**⚠️ Внимание**: команда `down -v` удаляет все данные включая базу данных и загруженные файлы!
 
 ## Заключение
 
-Новая двухуровневая архитектура конфигурации обеспечивает:
+Двухуровневая архитектура конфигурации обеспечивает:
 
 - ✅ **Совместимость** с вашими существующими .env файлами
 - ✅ **Гибкость** настройки инфраструктуры отдельно от логики
 - ✅ **Безопасность** изоляции секретов инфраструктуры
 - ✅ **Простоту** развертывания в разных окружениях
+- ✅ **Масштабируемость** через изолированные Docker сети
 
-Ваши сервисы продолжают использовать `godotenv.Load()` и локальные .env файлы, но при работе в Docker получают правильные настройки инфраструктуры автоматически. 
+Ваши сервисы продолжают использовать `godotenv.Load()` и локальные .env файлы, но при работе в Docker получают правильные настройки инфраструктуры автоматически.
