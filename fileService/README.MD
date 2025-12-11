@@ -136,3 +136,10 @@ File Service интегрирован с:
 - **API Service** - проксирование запросов
 - **Chat Service** - вложения в сообщениях
 - **Task Service** - файлы в задачах
+
+## 🧪 Тесты
+
+- Юнит-тесты: `go test -short ./tests/...`
+- Интеграционные тесты: `make integration` (поднимает `tests/integration/docker-compose.integration.yml`, применяет миграцию в тестовой схеме и гоняет `go test -tags=integration -v ./tests/integration/...`)
+- Запуск отдельного набора интеграций: `make integration TEST_ARGS="-run TestFileController_UploadAndGet_Integration"`
+- Инфраструктура интеграций: Postgres (порт `5433`) и MinIO (порт `9000`) без persistent volume; схема `file_service` перед прогоном очищается и пересоздаётся миграцией `migrations/000001_init_db_v1.up.sql`, bucket `integration-files` создаётся автоматически.

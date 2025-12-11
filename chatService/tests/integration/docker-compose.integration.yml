@@ -1,0 +1,65 @@
+networks:
+  backend-network:
+    name: backend-network
+    driver: bridge
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: chat-service-postgres-int
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: team_messenger_test
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    # No persistent volume: test data is discarded with container
+    volumes:
+      - ../../migrations:/migrations:ro
+    ports:
+      - "5433:5432" # не конфликтует с основной БД
+    networks:
+      - backend-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d team_messenger_test"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.4.0
+    container_name: chat-service-zookeeper-int
+    restart: unless-stopped
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    networks:
+      - backend-network
+
+  kafka:
+    image: confluentinc/cp-kafka:7.4.0
+    container_name: chat-service-kafka-int
+    restart: unless-stopped
+    depends_on:
+      - zookeeper
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      # Advertise localhost so host-based tests can reach the broker
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+    ports:
+      - "9092:9092"
+    networks:
+      - backend-network
+    healthcheck:
+      test: ["CMD", "kafka-broker-api-versions", "--bootstrap-server", "kafka:9092"]
+      interval: 5s
+      timeout: 10s
+      retries: 20
+      start_period: 20s
+

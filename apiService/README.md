@@ -151,3 +151,56 @@ API Service тесно интегрирован с другими компоне
 - **Kafka** - для получения обновлений ключей
 - **Redis** - для управления сессиями
 - **Все микросервисы** - для проксирования запросов
+
+## 🧪 Тесты
+
+### Юнит-тесты
+Запуск всех юнит-тестов:
+```bash
+go test -short ./tests/...
+```
+
+### Интеграционные тесты
+Интеграционные тесты проверяют реальное взаимодействие с Redis и Kafka.
+
+**Запуск через Makefile (рекомендуется):**
+```bash
+make integration
+```
+
+**Запуск с ограничением набора тестов:**
+```bash
+make integration TEST_ARGS="-v -run TestAuthController"
+```
+
+**Ручной запуск:**
+```bash
+# Поднять инфраструктуру
+make up-integration
+
+# Запустить тесты
+make run-tests-integration
+
+# Остановить инфраструктуру
+make down-integration
+```
+
+**Что поднимает `docker-compose.integration.yml`:**
+- **Redis** (порт 6379) - для тестирования кеширования и сессий
+- **Kafka** (порт 9092) - для тестирования обновлений ключей
+- **Zookeeper** - для Kafka
+
+Все контейнеры запускаются без persistent volumes - данные удаляются после остановки.
+
+**Покрытие тестами:**
+- ✅ AuthController - Register, Login, Logout
+- ✅ UserController - все методы (GetUser, UpdateUser, GetAllPermissions, GetAllRoles, CreateRole, UpdateUserRole, UpdateRolePermissions, DeleteRole, GetUserProfileByID, GetUserBrief, SearchUsers)
+- ✅ ChatController - все методы (GetUserChats, CreateChat, SendMessage, GetChatMessages, SearchMessages, UpdateChat, DeleteChat, BanUser, ChangeUserRole, GetMyRoleInChat, GetChatMembers)
+- ✅ TaskController - все методы (CreateTask, UpdateTaskStatus, GetTaskByID, GetUserTasks, GetAllStatuses, CreateStatus, GetStatusByID, DeleteStatus)
+- ✅ ChatRolePermissionController - все методы (GetAllRoles, GetRoleByID, CreateRole, DeleteRole, UpdateRolePermissions, GetAllPermissions, CreatePermission, DeletePermission)
+
+**Особенности интеграционных тестов:**
+- Тестируют реальное взаимодействие с Redis (кеширование, сессии)
+- Проверяют инвалидацию кеша при изменениях данных
+- Тестируют отзыв сессий при изменении ролей пользователей
+- Используют тестовые HTTP серверы для внешних сервисов
