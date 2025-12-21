@@ -1,6 +1,7 @@
 package main
 
 import (
+	_ "apiService/docs"
 	"apiService/internal/controllers"
 	"apiService/internal/handlers"
 	"apiService/internal/http_clients"
@@ -13,6 +14,8 @@ import (
 	"context"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 	"log"
 	"os"
 	"os/signal"
@@ -148,6 +151,9 @@ func main() {
 	r.GET("/api/v1/health", func(c *gin.Context) {
 		c.JSON(200, gin.H{"status": "ok"})
 	})
+
+	// Swagger documentation
+	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	// Use new middleware with PublicKeyManager and rate limiting
 	routes.RegisterAuthRoutes(r, authHandler, publicKeyManager, sessionService)
